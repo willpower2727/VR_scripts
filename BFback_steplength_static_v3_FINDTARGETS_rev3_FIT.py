@@ -1,13 +1,11 @@
 ﻿""" Biofeedback routine used to train subjects to take a step forward of various length
 
 Subject is intended to stand still on the treadmill wearing plugin gait with hip marker set.
-Targets are displayed showing how far a subject should step forward.
 
 In version 3 FINDTARGETS rev3, feedback, cursor, on, targets off, python c++ server instead of TMM
 
-uses new intitial pose
-
-3/6/2015
+updated to work with V2P_rev2
+3/19/2015
 """
 import viz
 import vizshape
@@ -19,7 +17,6 @@ import socket
 import sys
 import io
 import re
-#from xml.etree import ElementTree
 import xml.etree.cElementTree as ElementTree
 import threading
 import Queue
@@ -53,24 +50,29 @@ targettol = 0.025# 5cm
 
 #declare the total number of steps to attempt (this is the accumulation of steps total, i.e. 75 R and 75 L means 150 total attempts)
 global STEPNUM
-STEPNUM =21
+STEPNUM =20
 #setup array of randomly picked steps
 global randy
-randy  = [1] * STEPNUM + [2] * STEPNUM # create list of 1's and 2's 
-random.shuffle(randy)#randomize the order of tests
-random.shuffle(randy)#randomize the order of tests again
+randy = []
+order = [1,2] * STEPNUM
+while len(randy) < 100:#optimistically sample the solution space for test orders
+    random.shuffle(order)
+    if order in randy:
+        continue
+    if all(len(list(group)) < 4 for _, group in itertools.groupby(order)):
+        randy.append(order[:])
+randy = random.choice(randy)#order of tests, pseudo random. No more than 3 same sided tests in a row
 #print(randy)
 
-global boxL
-boxL = viz.addChild('target2.obj',color=(0.063,0.102,0.898),scale=[0.2,0.005,targettol*2])
-boxL.setPosition([-0.2,targetL,0])
-boxL.setEuler(0,90,0)
-boxL.visible(0)
-global boxR
-boxR = viz.addChild('target2.obj',color=(0.063,0.102,0.898),scale=[0.2,0.005,targettol*2])
-boxR.setPosition([0.2,targetR,0])
-boxR.setEuler(0,90,0)
-boxR.visible(0)
+global boxL #left target box
+boxL = viz.addChild('target.obj',color=(0.063,0.102,0.898),scale=[0.1,targettol+.019,0.0125])
+boxL.setPosition([-0.2,targetL,0.05])
+boxL.visible(0)#hide the targets
+
+global boxR #right target box
+boxR = viz.addChild('target.obj',color=(0.063,0.102,0.898),scale=[0.1,targettol+.019,0.0125])
+boxR.setPosition([0.2,targetR,.05])
+boxR.visible(0)#hide the targets in this script
 
 viz.MainView.setPosition(0, 0.4, -1.25)
 viz.MainView.setEuler(0,0,0)
@@ -92,18 +94,20 @@ Lhits = [0] * STEPNUM
 global stepind #this keeps track of the total # of attempts
 stepind = 0
 
-global Rspeed
-global Lspeed
-Rspeed= 0
-Lspeed = 0
+global RightBeltSpeed
+global LeftBeltSpeed
+RightBeltSpeed = 0
+LeftBeltSpeed = 0
 
 global cursorR
 cursorR = viz.add('box3.obj', color=viz.RED, scale=[0.1,0.4,0.0125], cache=viz.CACHE_NONE)
 cursorR.setPosition([0.2,0,0.025])
+cursorR.visible(0)
 
 global cursorL
 cursorL = viz.add('box3.obj', color=viz.GREEN, scale=[0.1,0.4,0.0125], cache=viz.CACHE_NONE)
 cursorL.setPosition([-0.2,0,0.025])
+cursorL.visible(0)
 
 #initialize a neutral position indicator box
 global neutralR
@@ -170,8 +174,8 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 		global neutralR
 		global randy
 		global stepind #this keeps track of the total # of attempts
-		global Rspeed
-		global Lspeed
+		global RightBeltSpeed
+		global LeftBeltSpeed
 		global Rattempts
 		global Lattempts
 		global Rhits
@@ -182,12 +186,12 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 			continue
 		else:
 			#find the data we need from the frame packet
-			lp1 = root.find(".//Forceplate_0/Subframe_0/F_z")#Left Treadmill
-			rp1 = root.find(".//Forceplate_1/Subframe_0/F_z")#Right Treadmill
-			s0ranky = root.find(".//Subject0/RANK/Y")
-			s0lanky = root.find(".//Subject0/LANK/Y")
+			lp1 = root.find(".//FP_0/SubF_7/Fz")#Left Treadmill
+			rp1 = root.find(".//FP_1/SubF_7/Fz")#Right Treadmill
+			s0ranky = root.find(".//Sub0/RANK/Y")
+			s0lanky = root.find(".//Sub0/LANK/Y")
 			
-			fn = root.find(".//FrameNumber")#find the frame number
+			fn = root.find(".//FN")#find the frame number
 			fnn = fn.attrib.values()
 
 			temp = rp1.attrib.values()
@@ -199,27 +203,28 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 			temp5 = s0lanky.attrib.values()
 			LANKY = float(temp5[0])/1000
 			
-			cursorR.setScale(0.1,LANKY-RANKY,0.01250)
-			cursorL.setScale(-0.1,RANKY-LANKY,0.01250)
+#			cursorR.setScale(0.1,LANKY-RANKY,0.01250)
+#			cursorL.setScale(-0.1,RANKY-LANKY,0.01250)
 			
-			if (LANKY-RANKY < 0):
-				cursorR.visible(0)
-				neutralR.visible(1)
-			else:
-				cursorR.visible(1)
-				neutralR.visible(0)
-				
-			if (RANKY-LANKY < 0):
-				cursorL.visible(0)
-				neutralL.visible(1)
-			else:
-				cursorL.visible(1)
-				neutralL.visible(0)
+#			if (LANKY-RANKY < 0):
+#				cursorR.visible(0)
+#				neutralR.visible(1)
+#			else:
+##				cursorR.visible(1)
+#				neutralR.visible(0)
+#				
+#			if (RANKY-LANKY < 0):
+#				cursorL.visible(0)
+#				neutralL.visible(1)
+#			else:
+##				cursorL.visible(1)
+#				neutralL.visible(0)
 
-			if (Rz <= -30) & (histzR > -30):#RHS condition
+			if (Rz < -30) & (histzR >= -30):#RHS condition
 				stepind = stepind+1
 				Rattempts = Rattempts+1
 				HistBallR.setPosition([0.2,LANKY-RANKY, 0])
+				
 				rightcounter.message(str(Rattempts))#display how many steps have been taken
 				try:
 					Rhits[Rattempts-1] = LANKY-RANKY#keep record in the list
@@ -227,10 +232,11 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 					print("Too many Right attempts made")
 				neutralL.visible(0)
 				neutralR.visible(0)
-			if (Lz <= -30) & (histzL > -30):#LHS condition
+			if (Lz < -30) & (histzL >= -30):#LHS condition
 				stepind = stepind+1
 				Lattempts = Lattempts+1
 				HistBallL.setPosition([-0.2,RANKY-LANKY, 0])
+				
 				leftcounter.message(str(Lattempts))#display how many steps have been taken
 				try:
 					Lhits[Lattempts-1] = RANKY-LANKY#keep record in the list
@@ -238,45 +244,26 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 					print("Too mane Left attempts made")
 				neutralL.visible(0)
 				neutralR.visible(0)
-			try:
-				if (randy[stepind] == 1):#right foot next test
-					if (Rz < -30) & (Lz < -30) & (abs((1.45-targetR)-LANKY) >= 0.04):#left foot is not at start position (1.45-target)
-	#					Lspeed = int(750*((1.45-targetR)-LANKY))
-						Lspeed = int(300*math.copysign(1,(1.45-targetR)-LANKY))
-	#					print(Lspeed)
-					else:
-						Lspeed = 0
-					if (Rz < -30) & (Lz < -30) & (abs(1.45-RANKY) >= 0.04):#right foot is not at 1.45 m from origin
-	#					Rspeed = int(750*(1.45-RANKY))
-						Rspeed = int(300*math.copysign(1,1.45-RANKY))
-	#					print(Rspeed)
-					else:
-						Rspeed = 0
-					if (Rspeed == 0) & (Lspeed == 0) & (abs((1.45-targetR)-LANKY) < 0.04) & (abs(1.45-RANKY) < 0.04):#everything is ready for the next step so display next target
+			
+			if (Rz < -50) & (LANKY-RANKY > 0.04):#check to see if the treadmill needs to move the feet back to neutral
+				speedlist = [200,0,1000,1000,0]
+				qq.put(speedlist)
+			elif (Lz < -50) & (RANKY-LANKY > 0.04):
+				speedlist = [0,200,1000,1000,0]
+				qq.put(speedlist)
+			else:
+				speedlist = [0,0,1000,1000,0]
+				qq.put(speedlist)
+				try:
+					if (randy[stepind]  == 1):#when the feet are back together, display the new target
 						neutralR.visible(1)
 						neutralL.visible(0)
-				elif (randy[stepind] == 2):#left foot next test
-					if (Rz < -30) & (Lz < -30) & (abs((1.45-targetR)-RANKY) > 0.04):#right foot is not at start position (1.45-target)
-	#					Rspeed = int(750*((1.45-targetR)-RANKY))
-						Rspeed = int(300*math.copysign(1,(1.45-targetR)-RANKY))
-	#					print(Rspeed)
 					else:
-						Rspeed = 0
-					if (Rz < -30) & (Lz < -30) & (abs(1.45-LANKY) > 0.04):#left foot is not at 1.45 m from origin
-	#					Lspeed = int(750*(1.45-LANKY))
-						Lspeed = int(300*math.copysign(1,1.45-LANKY))
-	#					print(Lspeed)
-					else:
-						Lspeed = 0
-					if (Rspeed == 0) & (Lspeed == 0) & (abs((1.45-targetR)-RANKY) < 0.04) & (abs(1.45-LANKY) < 0.04):#everything is ready for the next step so display next target
-						neutralL.visible(1)
 						neutralR.visible(0)
-			except:
-					print('Max steps reached')
-					
-			speedlist = [Rspeed,Lspeed,1200,1200,0]#the accelerations "1200 mm/s^2" are not arbitrary! Do not change. Integrate 1200 twice and you'll see that the belts should travel exactly 0.0375 m before stopping. 
-			qq.put(speedlist)
-
+						neutralL.visible(1)
+				except:#executes when stepind is out of range of the size of randy
+					print("Required # of steps complete!")
+#					break#? not sure what this will do just yet...
 			histzR = Rz
 			histzL = Lz
 			#save data

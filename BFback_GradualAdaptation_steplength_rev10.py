@@ -1,5 +1,5 @@
 ﻿#script runs biofeedback routine with python c++ server
-# V2P R3
+# V2P R3   OR   V2P R4
 #revision 10    3/25/2015   WDA, is adjusted to work with the new V2P_rev3 (fastest)
 
 import socket
@@ -215,25 +215,25 @@ def UpdateViz(root,q,savestring,q3):
 #		temp5 = s0lanky.attrib.values()
 #		LANKY = float(temp5[0])/1000
 
-		cursorR.setScale(0.1,-1*(RANKY-RHIPY)*scaling,0.01250)
-		cursorL.setScale(-0.1,-1*(LANKY-LHIPY)*scaling,0.01250)
+		cursorR.setScale(0.1,-1*((abs(RHIPY-LHIPY)/2)-RHIPY)*scaling,0.01250)
+		cursorL.setScale(-0.1,-1*((abs(RHIPY-LHIPY)/2)-LHIPY)*scaling,0.01250)
 		
 		#determine if we need to hide the cursor
-		if (RHIPY-RANKY < 0) | (Rz < -30):
+		if ((abs(RHIPY-LHIPY)/2)-RANKY < 0) | (Rz < -30):
 			cursorR.visible(0)
 		else:
 			cursorR.visible(1)
-		if (LHIPY-LANKY < 0) | (Lz < -30):
+		if ((abs(RHIPY-LHIPY)/2)-LANKY < 0) | (Lz < -30):
 			cursorL.visible(0)
 		else:
 			cursorL.visible(1)
 		
 		if (catchflag == 0) | (stridecounter > 12):
 			if (Rz <= -30) & (histzR > -30): #RHS condition
-				HistBallR.setPosition([0.2,-1*(RANKY-RHIPY)*scaling, 0])#update yellow history ball when HS happens
-				steplengthR = RHIPY-RANKY
+				HistBallR.setPosition([0.2,-1*((abs(RHIPY-LHIPY)/2)-RHIPY)*scaling, 0])#update yellow history ball when HS happens
+				steplengthR = (abs(RHIPY-LHIPY)/2)-RANKY
 				stridecounter = stridecounter+1  #this line of code will not appear in Left foot section, as we want 12 strides after catch for each side
-				Rhsp = RHIPY-RANKY
+				Rhsp = (abs(RHIPY-LHIPY)/2)-RANKY
 				psudoR = psudoR +1
 				RHS = 1
 				RTO = 0
@@ -248,7 +248,7 @@ def UpdateViz(root,q,savestring,q3):
 					boxR.color( viz.BLUE )
 			elif (Rz >= -30) & (histzR < -30):#RTO
 				#calculate Toe-Off position
-				Rtop = RHIPY-RANKY
+				Rtop = (abs(RHIPY-LHIPY)/2)-RANKY
 				RHS = 0
 				RTO = 1
 				if (psudoR >= 5): #if it's time to update target value
@@ -265,10 +265,10 @@ def UpdateViz(root,q,savestring,q3):
 				RTO = 0
 				
 			if (Lz <= -30) & (histzL > -30): #RHS condition
-				HistBallL.setPosition([-0.2,(LHIPY-LANKY)*scaling, 0])#update yellow history ball when HS happens
-				steplengthL = LHIPY-LANKY
+				HistBallL.setPosition([-0.2,((abs(RHIPY-LHIPY)/2)-LANKY)*scaling, 0])#update yellow history ball when HS happens
+				steplengthL = (abs(RHIPY-LHIPY)/2)-LANKY
 				stridecounter = stridecounter+1#this line of code will not appear in Left foot section, as we want 12 strides after catch for each side
-				Lhsp = LHIPY-LANKY
+				Lhsp = (abs(RHIPY-LHIPY)/2)-LANKY
 				psudoL = psudoL +1
 				LHS = 1
 				LTO = 0
@@ -283,7 +283,7 @@ def UpdateViz(root,q,savestring,q3):
 					boxL.color( viz.BLUE )
 			elif (Lz >= -30) & (histzL < -30):#LTO
 				#calculate Toe-Off position
-				Ltop = LHIPY-LANKY
+				Ltop = (abs(RHIPY-LHIPY)/2)-LANKY
 				LHS = 0
 				LTO = 1
 				if (psudoL >= 5): #if it's time to update target value
@@ -301,10 +301,10 @@ def UpdateViz(root,q,savestring,q3):
 			
 		elif (catchflag == 1) & (stridecounter <=12):
 			if (Rz <= -30) & (histzR > -30): #RHS condition
-				HistBallR.setPosition([0.2,-1*(RANKY-RHIPY)*scaling, 0])#update yellow history ball when HS happens
-				steplengthR = RHIPY-RANKY
+				HistBallR.setPosition([0.2,-1*((abs(RHIPY-LHIPY)/2)-RHIPY)*scaling, 0])#update yellow history ball when HS happens
+				steplengthR = (abs(RHIPY-LHIPY)/2)-RANKY
 				stridecounter = stridecounter+1  #this line of code will not appear in Left foot section, as we want 12 strides after catch for each side
-				Rhsp = RHIPY-RANKY
+				Rhsp = (abs(RHIPY-LHIPY)/2)-RANKY
 				psudoR = psudoR +1
 				RHS = 1
 				RTO = 0
@@ -319,7 +319,7 @@ def UpdateViz(root,q,savestring,q3):
 					boxR.color( viz.BLUE )
 			elif (Rz >= -30) & (histzR < -30):#RTO
 				#calculate Toe-Off position
-				Rtop = RHIPY-RANKY
+				Rtop = (abs(RHIPY-LHIPY)/2)-RANKY
 				RHS = 0
 				RTO = 1
 				if (psudoR >= 5): #if it's time to update target value
@@ -336,10 +336,10 @@ def UpdateViz(root,q,savestring,q3):
 				RTO = 0
 			
 			if (Lz <= -30) & (histzL > -30): #RHS condition
-				HistBallL.setPosition([-0.2,(LHIPY-LANKY)*scaling, 0])#update yellow history ball when HS happens
-				steplengthL = LHIPY-LANKY
+				HistBallL.setPosition([-0.2,((abs(RHIPY-LHIPY)/2)-LANKY)*scaling, 0])#update yellow history ball when HS happens
+				steplengthL = (abs(RHIPY-LHIPY)/2)-LANKY
 				stridecounter = stridecounter+1#this line of code will not appear in Left foot section, as we want 12 strides after catch for each side
-				Lhsp = LHIPY-LANKY
+				Lhsp = (abs(RHIPY-LHIPY)/2)-LANKY
 				psudoL = psudoL +1
 				LHS = 1
 				LTO = 0
@@ -378,7 +378,7 @@ def UpdateViz(root,q,savestring,q3):
 #		fnn = fn.attrib.values()
 #		print(fnn[0])
 
-		savestring = [FN,Rz,Lz,RHS,LHS,RTO,LTO,Rgorb,Lgorb,RHIPY-RANKY,LHIPY-LANKY,targetR,targetL,RHIPY,LHIPY,RANKY,LANKY]#organize the data to be written to file
+		savestring = [FN,Rz,Lz,RHS,LHS,RTO,LTO,Rgorb,Lgorb,(abs(RHIPY-LHIPY)/2)-RANKY,(abs(RHIPY-LHIPY)/2)-LANKY,targetR,targetL,(abs(RHIPY-LHIPY)/2),RANKY,LANKY]#organize the data to be written to file
 #		print(sys.getsizeof(savestring))
 		q3.put(savestring)
 
@@ -457,7 +457,7 @@ def savedata(savestring,q3):
 	print("Data file created named:")
 	print(mststring)
 	file = open(mststring,'w+')
-	json.dump(['FrameNumber','Rfz','Lfz','RHS','LHS','RTO','LTO','RGORB','LGORB','Ralpha','Lalpha','R target','L target','RHIPY','LHIPY','RANKY','LANKY'],file)
+	json.dump(['FrameNumber','Rfz','Lfz','RHS','LHS','RTO','LTO','RGORB','LGORB','Ralpha','Lalpha','R target','L target','HIPY','RANKY','LANKY'],file)
 	file.close()
 	
 	file = open(mststring,'a')#reopen for appending only

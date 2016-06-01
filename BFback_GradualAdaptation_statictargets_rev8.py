@@ -57,7 +57,7 @@ distheta = 2*math.atan2(2*targettol,2*1)
 global widetheta
 widetheta = 2*math.atan2(0.2,2*1)
 
-global distZ
+global distRZ
 distRZ = 2*targettol/(2*math.tan(distheta/2))
 global wideX
 wideRX = 2*(distRZ)*math.tan(widetheta/2)

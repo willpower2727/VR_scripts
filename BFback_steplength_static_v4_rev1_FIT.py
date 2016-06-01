@@ -40,13 +40,13 @@ messagewin = vizinfo.InfoPanel('',align=viz.ALIGN_CENTER_TOP,fontSize=60,icon=Fa
 #messagewin.visible(0)
 #set target tolerance for stride length
 global targetXl
-targetXl =0.56035
+targetXl =0.5966
 global targetXr
-targetXr = 0.5904
+targetXr = 0.5845
 global targetUl
-targetUl =0.56035
+targetUl =0.5966
 global targetUr
-targetUr = 0.5904
+targetUr = 0.5845
 
 global targettol
 targettol = 0.0375# 5cm total
@@ -82,8 +82,8 @@ global LCOUNT
 RCOUNT = 0
 LCOUNT = 0
 
-rightcounter = viz.addText(str(RCOUNT),pos=[.4,0,0],scale=[0.1,0.1,0.1])
-leftcounter = viz.addText(str(LCOUNT),pos=[-.6,0,0],scale=[0.1,0.1,0.1])
+rightcounter = viz.addText(str(RCOUNT),pos=[0.4,0,0],scale=[0.1,0.1,0.1])
+leftcounter = viz.addText(str(LCOUNT),pos=[-0.6,0,0],scale=[0.1,0.1,0.1])
 
 global RGOB
 RGOB = 0 #this will be 0 or 1, depending on success or failure
@@ -267,7 +267,7 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 #							print('previous target was L, phase = ',phaxxe)
 						else:
 							Lspeed = 0
-							print('Balance loss detected, stopped')
+#							print('Balance loss detected, stopped')
 				except:
 					disp('Max # of steps reached?')
 					Rspeed = 0
@@ -332,7 +332,7 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 						else:
 							cursorR.visible(1)
 							cursorL.visible(0)
-							cursorR.setScale(0.1,targetXr+LANKY-RANKY,0.01250)
+							cursorR.setScale(0.1,1.45-LANKY+LANKY-RANKY,0.01250)
 #						cursorL.visible(0)
 					elif (randy[stepind] == 2):
 #						cursorL.setPosition([-0.2,targetR,0.025])
@@ -345,7 +345,8 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 						else:
 							cursorL.visible(1)
 							cursorR.visible(0)
-							cursorL.setScale(0.1,targetXl+RANKY-LANKY,0.01250)
+#							cursorL.setScale(0.1,targetXl+RANKY-LANKY,0.01250)
+							cursorL.setScale(0.1,1.45-RANKY+RANKY-LANKY,0.01250)
 #						cursorR.visible(0)
 				except:
 					pass
@@ -354,9 +355,9 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 #					stepind = stepind+1
 					Rattempts = Rattempts+1
 					cursorR.visible(0)#turn off the cursor
-					cursorL.visible(1)
+#					cursorL.visible(1)
 					if (randy[stepind] == 1):
-						HistBallR.setPosition([0.2,LANKY-RANKY+targetXr, 0])
+						HistBallR.setPosition([0.2,LANKY-RANKY+1.45-LANKY, 0])
 						if (abs((LANKY-RANKY)-targetUr) <= targettol):
 							RCOUNT = RCOUNT+1
 							boxR.color( viz.WHITE )
@@ -365,6 +366,8 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 							boxR.color( viz.BLUE )
 							rgorb = 0
 					elif (randy[stepind] == 2):
+						cursorL.visible(1)
+						boxL.setPosition([-0.2,targetUl+1.45-RANKY,0])
 						HistBallR.setPosition([0.2,LANKY-RANKY, 0])
 						if (abs((LANKY-RANKY)-targetXr) <= targettol):
 							RCOUNT = RCOUNT+1
@@ -381,8 +384,10 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 #					stepind = stepind+1
 					Lattempts = Lattempts+1
 					cursorL.visible(0)
-					cursorR.visible(1)
+#					cursorR.visible(1)
 					if (randy[stepind] == 1):
+						cursorR.visible(1)
+						boxR.setPosition([0.2,1.45-LANKY+targetUr,0])
 						HistBallL.setPosition([-0.2,RANKY-LANKY, 0])
 						if (abs((RANKY-LANKY)-targetXl) <= targettol):
 							LCOUNT = LCOUNT+1
@@ -392,7 +397,7 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 							boxL.color( viz.BLUE )
 							lgorb = 0
 					elif (randy[stepind] == 2):
-						HistBallL.setPosition([-0.2,RANKY-LANKY+targetXl, 0])
+						HistBallL.setPosition([-0.2,RANKY-LANKY+1.45-RANKY, 0])
 						if (abs((RANKY-LANKY)-targetUl) <= targettol):
 							LCOUNT = LCOUNT+1
 							boxL.color( viz.WHITE )
@@ -422,7 +427,10 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 			histzR = Rz
 			histzL = Lz
 			#save data
-			savestring = [FN,Rz,Lz,rgorb,lgorb,RANKY-LANKY,LANKY-RANKY,targetXr-(LANKY-RANKY),targetXl-(RANKY-LANKY),targetUr-(LANKY-RANKY),targetUl-(RANKY-LANKY)]#organize the data to be written to file
+			try:
+				savestring = [FN,Rz,Lz,rgorb,lgorb,RANKY-LANKY,LANKY-RANKY,targetXr-(LANKY-RANKY),targetXl-(RANKY-LANKY),targetUr-(LANKY-RANKY),targetUl-(RANKY-LANKY),randy[stepind]]#organize the data to be written to file
+			except:
+				print('stepind out of range')
 			q3.put(savestring)
 #			timeold = time.time()
 	
@@ -514,7 +522,7 @@ def savedata(savestring,q3):
 	print("Data file created named: ")
 	print(mststring)
 	file = open(mststring,'w+')
-	json.dump(['FrameNumber','Rfz','Lfz','RGORB','LGORB','Rgamma','Lgamma','Xrerror','XLerror','Urerror','Ulerror'],file)
+	json.dump(['FrameNumber','Rfz','Lfz','RGORB','LGORB','Rgamma','Lgamma','Xrerror','XLerror','Urerror','Ulerror','test'],file)
 	file.close()
 	
 	file = open(mststring,'a')#reopen for appending only

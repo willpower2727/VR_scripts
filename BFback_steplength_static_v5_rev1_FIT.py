@@ -38,13 +38,13 @@ messagewin = vizinfo.InfoPanel('',align=viz.ALIGN_CENTER_TOP,fontSize=60,icon=Fa
 #messagewin.visible(0)
 #set target tolerance for stride length
 global targetXl
-targetXl =0.56035
+targetXl =0.5966
 global targetXr
-targetXr = 0.5904
+targetXr = 0.5845
 global targetUl
-targetUl =0.56035
+targetUl =0.5966
 global targetUr
-targetUr = 0.5904
+targetUr = 0.5845
 
 global targettol
 targettol = 0.0375# 5cm total
@@ -403,7 +403,10 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 			histzR = Rz
 			histzL = Lz
 			#save data
-			savestring = [FN,Rz,Lz,rgorb,lgorb,RANKY-LANKY,LANKY-RANKY,targetXr-(LANKY-RANKY),targetXl-(RANKY-LANKY),targetUr-(LANKY-RANKY),targetUl-(RANKY-LANKY)]#organize the data to be written to file
+			try:
+				savestring = [FN,Rz,Lz,rgorb,lgorb,RANKY-LANKY,LANKY-RANKY,targetXr-(LANKY-RANKY),targetXl-(RANKY-LANKY),targetUr-(LANKY-RANKY),targetUl-(RANKY-LANKY),randy[stepind]]#organize the data to be written to file
+			except:
+				print('stepind out of range')
 			q3.put(savestring)
 #			timeold = time.time()
 	

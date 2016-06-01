@@ -32,7 +32,7 @@ viz.vertex(1,-0.25,-0.0001)
 myLines = viz.endLayer() 
 #indicate flag for post-catch targets, which last for the first 12 steps
 global catchflag
-catchflag =1
+catchflag =0
 global stridecounter
 stridecounter = 0
 
@@ -133,11 +133,11 @@ global xR
 global xL
 
 Ltop = 0
-Lhsp = .220
+Lhsp = .26021
 Rtop = 0
-Rhsp = 0.245
-xR=-0.279
-xL=-0.262
+Rhsp = 0.26735
+xR=-0.25423
+xL=-0.27941
 
 #keep track of each step, whether it is good or bad
 global Rgorb
@@ -147,15 +147,15 @@ Lgorb = 0
 
 #R Rigth leg with X 
 global R
-R = 1.17
+R = 0.9526
 #R left leg with X 
 global R2
-R2 =1.2
+R2 =1.09
 
 global rsci
-rsci =1.04#1.095
+rsci =0.9359#1.095
 global lsci
-lsci = 1.14#0.981
+lsci =0.96843#0.981
 
 global RHS
 RHS = 0
@@ -252,20 +252,20 @@ def UpdateViz(root,q,savestring,q3):
 #		LANKY = float(temp5[0])/1000
 	
 		#determine if we need to hide the cursor
-		if (RHIPY-RANKY < 0) | (Rz < -30):
+		if ((abs(RHIPY+LHIPY)/2)-RANKY < 0) | (Rz < -30):
 			cursorR.visible(0)
 		else:
 			cursorR.visible(1)
 		
-		if (LHIPY-LANKY < 0) | (Lz < -30):
+		if ((abs(RHIPY+LHIPY)/2)-LANKY < 0) | (Lz < -30):
 			cursorL.visible(0)
 		else:
 			cursorL.visible(1)
 		
 		
-		cursorR.setScale(0.1,rsci*(RHIPY-RANKY),-0.001)
+		cursorR.setScale(0.1,rsci*((abs(RHIPY+LHIPY)/2)-RANKY),-0.001)
 #		print("rsci*(RHIPY-RANKY) is: ",rsci*(RHIPY-RANKY))
-		cursorL.setScale(-0.1,lsci*(LHIPY-LANKY),-0.001)
+		cursorL.setScale(-0.1,lsci*((abs(RHIPY+LHIPY)/2)-LANKY),-0.001)
 #		print("lsci*(LHIPY-LANKY) is: ",lsci*(LHIPY-LANKY))
 		
 		if  (catchflag ==0) | (stridecounter >8):# (stridecounter > 8):
@@ -277,19 +277,19 @@ def UpdateViz(root,q,savestring,q3):
 			boxR2.visible(1)
 			#detect gait events
 			if (Rz <= -30) & (histzR >-30): #RHS
-				HistBallR.setPosition([wideRX,rsci*(RHIPY-RANKY)-0.25,distRZ-1.001])
+				HistBallR.setPosition([wideRX,rsci*((abs(RHIPY+LHIPY)/2)-RANKY)-0.25,distRZ-1.001])
 				HistBallR.setScale(wideRX,rsci*0.01,0.001)
 				stridecounter = stridecounter+1
 				RHS = 1
 				RTO = 0
-				Rhsp = RHIPY-RANKY#update the alpha value
-				xL=LHIPY-LANKY #position of left leg at RHS
+				Rhsp = (abs(RHIPY+LHIPY)/2)-RANKY#update the alpha value
+				xL=(abs(RHIPY+LHIPY)/2)-LANKY #position of left leg at RHS
 #				print("Right error is: ",abs(RHIPY-RANKY)-fakeTargetR)
-				if (abs(RHIPY-RANKY-fakeTargetR) <= targetto2):
+				if (abs((abs(RHIPY+LHIPY)/2)-RANKY-fakeTargetR) <= targetto2):
 					RCOUNT = RCOUNT+1
 					boxR2.color( viz.WHITE )
 					Rgorb = 1  #flag this step as good or bad
-					if (abs(RHIPY-RANKY-fakeTargetR) <= targettol):
+					if (abs((abs(RHIPY+LHIPY)/2)-RANKY-fakeTargetR) <= targettol):
 					 boxR.color( viz.WHITE )
 					else:
 					 boxR.color( 0,0,1 )
@@ -301,7 +301,7 @@ def UpdateViz(root,q,savestring,q3):
 			elif (Rz >= -30) & (histzR < -30): #RTO
 				#calculate Toe-Off position
 				RTO = 1
-				Rtop = RHIPY-RANKY#update beta value
+				Rtop = (abs(RHIPY+LHIPY)/2)-RANKY#update beta value
 				if (psudoR == 5):
 					rsci = 0.25*(1/(Rhsp+((n/(1+R))*(abs(xR)-R*Rhsp))))#find new scale factor
 					fakeTargetR = Rhsp+(n/(1+R))*(abs(xR)-R*Rhsp)#find the theoretical target
@@ -327,18 +327,18 @@ def UpdateViz(root,q,savestring,q3):
 				RTO = 0
 			
 			if (Lz <= -30) & (histzL >-30): #LHS
-				HistBallL.setPosition([-wideLX,lsci*(LHIPY-LANKY)-0.25,distLZ-1.001])
+				HistBallL.setPosition([-wideLX,lsci*((abs(RHIPY+LHIPY)/2)-LANKY)-0.25,distLZ-1.001])
 				HistBallL.setScale(wideLX,lsci*0.01,0.001)
 				stridecounter = stridecounter+1
 				LHS = 1
 				LTO = 0
-				Lhsp = LHIPY-LANKY#update the alpha value
-				xR=RHIPY-RANKY #position of right leg at SHS
-				if (abs(LHIPY-LANKY-fakeTargetL) <= targetto2):
+				Lhsp = (abs(RHIPY+LHIPY)/2)-LANKY#update the alpha value
+				xR=(abs(RHIPY+LHIPY)/2)-RANKY #position of right leg at SHS
+				if (abs((abs(RHIPY+LHIPY)/2)-LANKY-fakeTargetL) <= targetto2):
 					LCOUNT = LCOUNT+1
 					boxL2.color( viz.WHITE )
 					Lgorb = 1  #flag this step as good or bad
-					if (abs(LHIPY-LANKY-fakeTargetL) <= targettol):
+					if (abs((abs(RHIPY+LHIPY)/2)-LANKY-fakeTargetL) <= targettol):
 					 boxL.color( viz.WHITE )
 					else:
 					 boxL.color( 0,0,1)
@@ -349,7 +349,7 @@ def UpdateViz(root,q,savestring,q3):
 					Lgorb = 0
 			elif (Lz >= -30) & (histzL < -30): #RTO
 				#calculate Toe-Off position
-				Ltop = LHIPY-LANKY#update beta value
+				Ltop = (abs(RHIPY+LHIPY)/2)-LANKY#update beta value
 				LTO = 1
 				LHS = 0
 				if (psudoL == 5):
@@ -389,10 +389,10 @@ def UpdateViz(root,q,savestring,q3):
 				stridecounter = stridecounter+1
 				RHS = 1
 				RTO = 0
-				Rhsp = RHIPY-RANKY#update the alpha value
-				xL= LHIPY-LANKY
+				Rhsp = (abs(RHIPY+LHIPY)/2)-RANKY#update the alpha value
+				xL= (abs(RHIPY+LHIPY)/2)-LANKY
 #				print("Right error is: ",abs(RHIPY-RANKY)-fakeTargetR)
-				if (abs(RHIPY-RANKY-fakeTargetR) <= targetto2):
+				if (abs((abs(RHIPY+LHIPY)/2)-RANKY-fakeTargetR) <= targetto2):
 					RCOUNT = RCOUNT+1
 				#	boxR2.color( viz.WHITE )
 					Rgorb = 1  #flag this step as good or bad
@@ -407,7 +407,7 @@ def UpdateViz(root,q,savestring,q3):
 					Rgorb = 0
 			elif (Rz >= -30) & (histzR < -30): #RTO
 				#calculate Toe-Off position
-				Rtop = RHIPY-RANKY#update beta value
+				Rtop = (abs(RHIPY+LHIPY)/2)-RANKY#update beta value
 				RTO = 1
 				if (psudoR == 5):
 					rsci = 0.25*(1/(Rhsp+((n/(1+R))*(abs(xR)-R*Rhsp))))#find new scale factor
@@ -436,15 +436,16 @@ def UpdateViz(root,q,savestring,q3):
 				stridecounter = stridecounter+1
 				LHS = 1
 				LTO = 0
-				Lhsp = LHIPY-LANKY#update the alpha value
-				xR= RHIPY-RANKY
-				if (abs(LHIPY-LANKY-fakeTargetL) <= targetto2):
+				Lhsp = (abs(RHIPY+LHIPY)/2)-LANKY#update the alpha value
+				xR= (abs(RHIPY+LHIPY)/2)-RANKY
+				if (abs((abs(RHIPY+LHIPY)/2)-LANKY-fakeTargetL) <= targetto2):
 					LCOUNT = LCOUNT+1
 				#	boxL2.color( viz.WHITE )
 					Lgorb = 1  #flag this step as good or bad
 				#	if (abs(LHIPY-LANKY-fakeTargetL) <= targettol):
 				#	 boxL.color( viz.WHITE )
 				#	else:
+				
 				#	 boxL.color( 0,0,1 )
 					
 				else:
@@ -453,7 +454,7 @@ def UpdateViz(root,q,savestring,q3):
 					Lgorb = 0
 			elif (Lz >= -30) & (histzL < -30): #RTO
 				#calculate Toe-Off position
-				Ltop = LHIPY-LANKY#update beta value
+				Ltop = (abs(RHIPY+LHIPY)/2)-LANKY#update beta value
 				LTO = 1
 				if (psudoL == 5):
 					lsci = 0.25*(1/(Lhsp+((n/(1+R2))*(abs(xL)-R2*Lhsp))))#find new scale factor
@@ -483,7 +484,7 @@ def UpdateViz(root,q,savestring,q3):
 #		fnn = fn.attrib.values()
 #		print(fnn[0])
 		
-		savestring = [FN,Rz,Lz,RHS,LHS,RTO,LTO,Rgorb,Lgorb,RHIPY-RANKY,LHIPY-LANKY,rsci,lsci,RHIPY,LHIPY,RANKY,LANKY,fakeTargetR,fakeTargetL,xL,xR,(RHIPY-RANKY)-xL,(LHIPY-LANKY)-xR ]#organize the data to be written to file
+		savestring = [FN,Rz,Lz,RHS,LHS,RTO,LTO,Rgorb,Lgorb,(abs(RHIPY+LHIPY)/2)-RANKY,(abs(RHIPY-LHIPY)/2)-LANKY,rsci,lsci,(abs(RHIPY+LHIPY)/2),RANKY,LANKY,fakeTargetR,fakeTargetL,xL,xR,((abs(RHIPY+LHIPY)/2)-RANKY)-xL,((abs(RHIPY+LHIPY)/2)-LANKY)-xR ]#organize the data to be written to file
 #		print(sys.getsizeof(savestring))
 		q3.put(savestring)
 
@@ -546,7 +547,7 @@ def savedata(savestring,q3):
 	print("Data file created named:")
 	print(mststring)
 	file = open(mststring,'w+')
-	json.dump(['FrameNumber','Rfz','Lfz','RHS','LHS','RTO','LTO','RGORB','LGORB','Ralpha','Lalpha','Rscale','Lscale','RHIPY','LHIPY','RANKY','LANKY','targetR','targetL','xL','xR','steplenghtR','steplenghtL'],file)
+	json.dump(['FrameNumber','Rfz','Lfz','RHS','LHS','RTO','LTO','RGORB','LGORB','Ralpha','Lalpha','Rscale','Lscale','HIPY','RANKY','LANKY','targetR','targetL','xL','xR','steplenghtR','steplenghtL'],file)
 	file.close()
 	
 	file = open(mststring,'a')#reopen for appending only
