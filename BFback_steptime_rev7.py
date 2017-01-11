@@ -2,9 +2,9 @@
 
 This script updates left and right cursors based on step time, using a flip-flop technique
 
-WDA 2/26/2016
+WDA 6/20/2016
 
-rev6 uses latest methods of streaming and parsing
+rev7 introduces saving data
 
 V2P DK2 R1
 """
@@ -34,10 +34,10 @@ viz.FULLSCREEN
 time.sleep(3)
 #set target tolerance for step time
 global targetL
-targetL = 0.642
+targetL = 0.7180
 
 global targetR
-targetR = 0.642
+targetR = 0.7180
 
 global targettol
 targettol = 0.025
@@ -97,13 +97,30 @@ histzL = 0
 global steptime
 steptime = 0
 
-def UpdateViz(root,q):
+global rgorb#logic 1 on successful step, 0 if outside tolerance
+rgorb = 0
+
+global lgorb
+lgorb = 0
+
+global RHS 
+RHS = 0
+
+global LHS
+LHS = 0
+
+
+def UpdateViz(root,q,savestring,q3):
 	global targetL
 	global targetR
 	global targettol
 	global histzR
 	global histzL
 	global steptime
+	global rgorb
+	global lgorb
+	global RHS
+	global LHS
 	timeold = time.time()
 	
 	while not endflag.isSet():
@@ -119,22 +136,31 @@ def UpdateViz(root,q):
 		if (Rz < -30) & (histzR >= -30):#RHS
 			cursorR.visible(0)# hide right side show left
 			cursorL.visible(1)
+			RHS = 1
 			if (abs(steptime - targetR) < targettol):
 				boxR.color(0,1,0.3)
+				rgorb = 1
 			else:
 				boxR.color(1,0.2,0)
+				rgorb = 0
 			HistBallR.setPosition([0.2, steptime, 0])
 			steptime = 0
+		
 		elif (Lz < -30) & (histzL >= -30): #LHS
 			cursorR.visible(1)
 			cursorL.visible(0)
+			LHS = 1
 			if (abs(steptime - targetL) < targettol):
 				boxL.color(0,1,0.3)
+				lgorb = 1
 			else:
 				boxL.color(1,0.2,0)
+				lgorb = 0
 			HistBallL.setPosition([-0.2, steptime, 0])
 			steptime = 0
 		else:
+			RHS = 0
+			LHS = 0
 			steptime = steptime + timediff
 		#change the heights
 		cursorR.setScale(0.1,steptime,0.01250)
@@ -143,6 +169,9 @@ def UpdateViz(root,q):
 		timeold = time.time()
 		histzR = Rz
 		histzL = Lz
+		
+		savestring = [FN,Rz,Lz,RHS,LHS,rgorb,lgorb,steptime]
+		q3.put(savestring)
 		
 	#close cpp server
 	cpps.kill()
@@ -215,6 +244,44 @@ def runclient(root,q):
 		s.send('b')
 	s.close()
 
+def savedata(savestring,q3):
+	
+	#initialize the file
+	mst = time.time()
+	mst2 = int(round(mst))
+	mststring = str(mst2)+'BFback_steptime_rev7.txt'
+	print("Data file created named: ")
+	print(mststring)
+	file = open(mststring,'w+')
+	csvw = csv.writer(file)
+	csvw.writerow(['FrameNumber','Rfz','Lfz','RHS','LHS','rgorb','lgorb','steptime'])
+	file.close()
+	
+	file = open(mststring,'a')#reopen for appending only
+	csvw = csv.writer(file)
+	while not endflag.isSet():
+		savestring = q3.get()#look in the queue for data to write
+		if savestring is None:
+			continue
+		else:
+			csvw.writerow(savestring)
+	print("savedata stop flag raised, finishing...")
+	while 1:
+		try:
+			savestring = q3.get(False,2)
+		except:
+			savestring = 'g'
+#		print(savestring)
+		if savestring  == 'g':
+			break
+			print("data finished write to file")
+		else:
+			csvw.writerow(savestring)
+			print("data still writing to file")
+		
+	print("savedata finished writing")
+	file.close()
+
 endflag = threading.Event()
 def raisestop(sign):
 	print("stop flag raised")
@@ -224,18 +291,23 @@ def raisestop(sign):
 	viz.quit()
 	
 root = ''#empty string
+savestring = ''
 q = Queue.Queue()#initialize the queue
+q3 = Queue.Queue()#intialize another queue for saving data
 #create threads for client
 t1 = threading.Thread(target=runclient,args=(root,q))
-t2 = threading.Thread(target=UpdateViz,args=(root,q))
+t2 = threading.Thread(target=UpdateViz,args=(root,q,savestring,q3))
+t4 = threading.Thread(target=savedata,args=(savestring,q3))
 t1.daemon = True
 t2.daemon = True
+t4.daemon = True
 #start the threads
 t1.start()
 t2.start()
+t4.start()
 
 print("\n")
 print("press 'q' to stop")
 print("\n")
 
-vizact.onkeydown('q',raisestop,'t')
+vizact.onkeydown('q',raisestop,'biggle')

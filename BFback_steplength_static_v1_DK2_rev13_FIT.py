@@ -3,11 +3,10 @@
 Subject is intended to stand still on the treadmill wearing plugin gait with hip marker set.
 Targets are displayed showing how far a subject should step forward.
 
-In version 3 feedback,and target are on. Cursor is off
-rev19 displays on the HMD, static, non updating viewpoint
+In version 1 rev 13, uses csv and updates Oculus methods
 
 #Use with V2P DK2 R1
-wda 10/28/2015
+wda 9/30/2016
 """
 import viz
 import vizshape
@@ -19,7 +18,7 @@ import socket
 import sys
 import io
 import re
-#import xml.etree.cElementTree as ElementTree
+import csv
 import threading
 import Queue
 import time
@@ -30,35 +29,48 @@ import array
 import math
 import vizlens
 import oculus
+import subprocess
+
+global cpps
+cpps = subprocess.Popen('"C:/Users/Gelsey Torres-Oviedo/Documents/Visual Studio 2013/Projects/Vicon2Python_DK2_rev2/x64/Release/Vicon2Python_DK2_rev2.exe"')
+time.sleep(3)
 
 viz.splashScreen('C:\Users\Gelsey Torres-Oviedo\Desktop\VizardFolderVRServer\Logo_final_DK2.jpg')
 viz.go(
 viz.FULLSCREEN #run world in full screen
 )
-
 time.sleep(2)#show off our cool logo, not really required but cool
-global hmd
-view = viz.addView
-hmd = oculus.Rift()
-hmd.getSensor
-
-viz.fov(110)
-pincushion = vizlens.PincushionDistortion()
-pincushion.setK1(0.2)
-
 global messagewin
 messagewin = vizinfo.InfoPanel('',align=viz.ALIGN_CENTER_TOP,fontSize=60,icon=False,key=None)
+
+monoWindow = viz.addWindow(size=(1,1), pos=(0,1), scene=viz.addScene())
+monoQuad = viz.addTexQuad(parent=viz.ORTHO, scene=monoWindow)
+monoQuad.setBoxTransform(viz.BOX_ENABLED)
+monoQuad.setTexQuadDisplayMode(viz.TEXQUAD_FILL)
+texture = vizfx.postprocess.getEffectManager().getColorTexture()
+
+def UpdateTexture():
+    monoQuad.texture(texture)
+vizact.onupdate(0, UpdateTexture)
+
+global hmd
+hmd = oculus.Rift()
+
+global sensei
+sensei = hmd.getSensor()
+profile = hmd.getProfile()
+hmd.setIPD(profile.ipd)
 
 #messagewin.visible(0)
 #set target tolerance for stride length
 global targetXl
-targetXl =0.6399
+targetXl =0.6435
 global targetXr
-targetXr = 0.61298
+targetXr = 0.6339
 global targetUl
-targetUl =0.6399
+targetUl =0.6435
 global targetUr
-targetUr = 0.61298
+targetUr = 0.6339
 
 global targettol
 targettol = 0.0375# 5cm total
@@ -69,8 +81,8 @@ STEPNUM =10
 #setup array of randomly picked steps
 global randy
 randy = []
-order = [1,2] * (2*STEPNUM)
-while len(randy) < 20:#optimistically sample the solution space for test orders, reduced from 100 on 11/3/2015 to reduce calculation time for high stepnum
+order = [1,2] * (STEPNUM)
+while len(randy) < 100:#optimistically sample the solution space for test orders
     random.shuffle(order)
     if order in randy:
         continue
@@ -78,6 +90,20 @@ while len(randy) < 20:#optimistically sample the solution space for test orders,
         randy.append(order[:])
 randy = random.choice(randy)#order of tests, pseudo random. No more than 3 same sided tests in a row
 print(randy)
+
+#open distribution of errors from previous subjects, to provide the fake feedback
+f = open('C:\Users\Gelsey Torres-Oviedo\Downloads\SLPvar.csv','r')
+lines = f.readlines()
+global dist
+dist = [0]*len(lines)
+f.close()
+f = open('C:\Users\Gelsey Torres-Oviedo\Downloads\SLPvar.csv','r')
+for z in range(0,len(lines)):
+	temp = f.readline()
+	temp = temp.replace('\n','')
+	dist[z] = float(temp)
+print(dist)
+	
 
 global boxL
 boxL = viz.addChild('target2.obj',color=(0.063,0.102,0.898),scale=[0.2,0.005,targettol*2])
@@ -104,13 +130,15 @@ LGOB = 0
 global stepind #this keeps track of the total # of attempts
 stepind = 0
 
-#global cursorR
-#cursorR = viz.add('box3.obj', color=viz.RED, scale=[0.1,targetXr,0.0125], cache=viz.CACHE_NONE)
-#cursorR.setPosition([0.2,0,0.025])
+global cursorR
+cursorR = viz.add('box3.obj', color=viz.RED, scale=[0.1,targetXr,0.0125], cache=viz.CACHE_NONE)
+cursorR.setPosition([0.2,0,0.025])
+cursorR.visible(0)
 
-#global cursorL
-#cursorL = viz.add('box3.obj', color=viz.GREEN, scale=[0.1,targetXl,0.0125], cache=viz.CACHE_NONE)
-#cursorL.setPosition([-0.2,0,0.025])
+global cursorL
+cursorL = viz.add('box3.obj', color=viz.GREEN, scale=[0.1,targetXl,0.0125], cache=viz.CACHE_NONE)
+cursorL.setPosition([-0.2,0,0.025])
+cursorL.visible(0)
 
 #initialize a neutral position indicator box
 global neutralR
@@ -181,8 +209,8 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 #	timeold = time.time()
 
 	while not endflag.isSet():
-#		global cursorL
-#		global cursorR
+		global cursorL
+		global cursorR
 		global HistBallL
 		global HistBallR
 		global histzL
@@ -202,12 +230,15 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 		global messagewin
 		global rbad
 		global lbad
+		global dist
 		
 		
 		root = q.get()#look for the next frame data in the thread queue
 		if root is None:
+			print "root is none"
 			continue
 		else:
+			root = q.get()
 			data = ParseRoot(root)
 			FN = int(data["FN"])
 			Rz = float(data["Rz"])
@@ -217,6 +248,9 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 			else:
 				RANKY = float(data["RANK"][1])/1000
 				LANKY = float(data["LANK"][1])/1000
+				RHIP = float(data["RHIP"][1])/1000
+				LHIP = float(data["LHIP"][1])/1000
+
 			
 			#state machine
 			if (phaxxe == 0):  #match ankles if needed
@@ -356,73 +390,109 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 			elif (phaxxe == 4):
 				messagewin.visible(0)
 #				viz.visible(1)
-#				try:
-#					if (randy[stepind] == 1):
-#						if (LANKY-RANKY < 0):
-#							cursorR.visible(0)
-#						else:
+				try:
+					if (randy[stepind] == 1):
+						if (LANKY-RANKY < 0):
+							cursorR.visible(0)
+						else:
 #							cursorR.visible(1)
-#							cursorR.setScale(0.1,LANKY-RANKY,0.01250)
-#						cursorL.visible(0)
-#					elif (randy[stepind] == 2):
-#						if (RANKY-LANKY < 0):
-#							cursorL.visible(0)
-#						else:
+							cursorR.setScale(0.1,LANKY-RANKY,0.01250)
+						cursorL.visible(0)
+					elif (randy[stepind] == 2):
+						if (RANKY-LANKY < 0):
+							cursorL.visible(0)
+						else:
 #							cursorL.visible(1)
-#							cursorL.setScale(-0.1,RANKY-LANKY,0.01250)
-#						cursorR.visible(0)
-#				except:
-#					if (stepind >= STEPNUM):
-#						disp('Max # of steps reached')
-#						phaxxe = 5
+							cursorL.setScale(-0.1,RANKY-LANKY,0.01250)
+						cursorR.visible(0)
+				except:
+					if (stepind >= STEPNUM):
+						disp('Max # of steps reached')
+						phaxxe = 5
 					
 				if (Rz <= -30) & (histzR > -30):#RHS condition
 					stepind = stepind+1
 					Rattempts = Rattempts+1
-#					cursorR.visible(0)#turn off the cursor
-					HistBallR.setPosition([0.2,LANKY-RANKY, 0])
+					cursorR.visible(0)#turn off the cursor
+#					HistBallR.setPosition([0.2,LANKY-RANKY, 0])
+					tempr = targetUr+random.choice(dist)
+					HistBallR.setPosition([0.2,tempr, 0])
 					HistBallR.visible(1)
+#					RCOUNT = RCOUNT+1
+#					print('RCOUNT ',RCOUNT,' LCOUNT ',LCOUNT)
 					if (abs((LANKY-RANKY)-targetUr) <= targettol):
 						RCOUNT = RCOUNT+1
-						rbad = 0
-						boxR.color( viz.WHITE )
+#						rbad = 0
+#						boxR.color( viz.WHITE )
 						rgorb = 1
+						print('rgorb',rgorb)
 					else:
 						rbad = rbad+1
-						boxR.color( viz.BLUE )
+#						boxR.color( viz.BLUE )
 						rgorb = 0
-					rightcounter.message(str(RCOUNT)+'/'+str(Rattempts))
+						print('rgorb',rgorb)
+						
+					if (abs(tempr-targetUr) <= targettol):
+#						RCOUNT = RCOUNT+1
+#						rbad = 0
+						boxR.color( viz.WHITE )
+#						rgorb = 1
+					else:
+#						rbad = rbad+1
+						boxR.color( viz.BLUE )
+#						rgorb = 0
+#					rightcounter.message(str(RCOUNT)+'/'+str(Rattempts))
+					rightcounter.message(str(Rattempts))
 					phaxxe = 0
 					
 				
 				if (Lz <= -30) & (histzL > -30):#LHS condition
 					stepind = stepind+1
 					Lattempts = Lattempts+1
-#					cursorL.visible(0)
+					cursorL.visible(0)
+					templ = targetUl+random.choice(dist)
 					HistBallL.visible(1)
-					HistBallL.setPosition([-0.2,RANKY-LANKY, 0])
+					HistBallL.setPosition([-0.2,templ, 0])
+#					LCOUNT = LCOUNT+1
+#					print('RCOUNT ',RCOUNT,' LCOUNT ',LCOUNT)
 					if (abs((RANKY-LANKY)-targetUl) <= targettol):
 						LCOUNT = LCOUNT+1
-						lbad = 0
-						boxL.color( viz.WHITE )
+#						lbad = 0
+#						boxL.color( viz.WHITE )
 						lgorb = 1
+						print('lgorb',lgorb)
 					else:
 						lbad = lbad +1
-						boxL.color( viz.BLUE )
+#						boxL.color( viz.BLUE )
 						lgorb = 0
-					leftcounter.message(str(LCOUNT)+'/'+str(Lattempts))
+						print('lgorb',lgorb)
+						
+						
+					if (abs(templ-targetUl) <= targettol):
+#						LCOUNT = LCOUNT+1
+#						lbad = 0
+						boxL.color( viz.WHITE )
+#						lgorb = 1
+					else:
+#						lbad = lbad +1
+						boxL.color( viz.BLUE )
+#						lgorb = 0
+#					leftcounter.message(str(LCOUNT)+'/'+str(Lattempts))
+					leftcounter.message(str(Lattempts))
 					phaxxe = 0
-					
-				if (RCOUNT >= STEPNUM) & (LCOUNT >= STEPNUM):
+#				print('RCOUNT ',RCOUNT,' LCOUNT ',LCOUNT)
+				if (Rattempts >= STEPNUM) & (Lattempts >= STEPNUM):
 					phaxxe = 5
-				elif (rbad >= 20) | (lbad >=20):
-					phaxxe = 5
-					print "Too many bad steps in a row, take a break"
-					
+##				elif (rbad >= 20) | (lbad >=20):
+#					phaxxe = 5
+#					print "Too many bad steps in a row, take a break"
 					
 			elif (phaxxe == 5):#end of trial move the feet together
 				messagewin.setText('Test Complete!')
 				messagewin.visible(1)
+				print('R',RCOUNT,'/',STEPNUM)
+				print('L',LCOUNT,'/',STEPNUM)
+				print("All data has been processed")
 				if (RANKY-LANKY >= 0.04) & (Rz < -30) & (Lz < -30):
 					Lspeed = int(300*math.copysign(1,(RANKY-LANKY)))
 					Rspeed = 0
@@ -443,14 +513,14 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 			histzR = Rz
 			histzL = Lz
 			#save data
-			savestring = [FN,Rz,Lz,rgorb,lgorb,RANKY-LANKY,LANKY-RANKY,targetUr-(LANKY-RANKY),targetUl-(RANKY-LANKY)]#organize the data to be written to file
+			savestring = [FN,Rz,Lz,rgorb,lgorb,RANKY-LANKY,LANKY-RANKY,targetUr-(LANKY-RANKY),targetUl-(RANKY-LANKY),RANKY,LANKY,RHIP,LHIP]#organize the data to be written to file
 			q3.put(savestring)
 #			timeold = time.time()
-	
+	cpps.kill()
 #	q3.join()
 	#print stats
-	print('R',RCOUNT,'/',Rattempts)
-	print('L',LCOUNT,'/',Lattempts)
+	print('R',RCOUNT,'/',STEPNUM)
+	print('L',LCOUNT,'/',STEPNUM)
 	print("All data has been processed")
 	
 def runclient(root,q):
@@ -534,11 +604,12 @@ def savedata(savestring,q3):
 	#initialize the file
 	mst = time.time()
 	mst2 = int(round(mst))
-	mststring = str(mst2)+'DK2rev19V3.txt'
+	mststring = str(mst2)+'rev13V1.txt'
 	print("Data file created named: ")
 	print(mststring)
 	file = open(mststring,'w+')
-	json.dump(['FrameNumber','Rfz','Lfz','RGORB','LGORB','Rgamma','Lgamma','Rerror','Lerror'],file)
+	csvw = csv.writer(file)
+	csvw.writerow(['FrameNumber','Rfz','Lfz','rgorb','lgorb','rgamma','lgamma','rerror','lerror','RANK','LANK','RHIP','LHIP'])
 	file.close()
 	
 	file = open(mststring,'a')#reopen for appending only
@@ -548,7 +619,7 @@ def savedata(savestring,q3):
 		if savestring is None:
 			continue
 		else:
-			json.dump(savestring, file)
+			csvw.writerow(savestring)
 	print("savedata stop flag raised, finishing...")
 	while 1:
 		try:
@@ -560,7 +631,7 @@ def savedata(savestring,q3):
 			break
 			print("data finished write to file")
 		else:
-			json.dump(savestring, file)
+			csvw.writerow(savestring)
 			print("data still writing to file")
 		
 	print("savedata finished writing")
@@ -589,7 +660,7 @@ def ParseRoot(root):#the purpose of this function is to make sure that marker da
 		
 #	print data
 	return data
-
+	
 endflag = threading.Event()#an event to raise when we are ready to stop recording
 def raisestop(sign):
 	#the sign passed in doesn't do anything, I just didn't know how to make this work without passing something in...

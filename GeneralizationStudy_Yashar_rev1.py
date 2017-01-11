@@ -39,10 +39,12 @@ import vizmat
 import vizlens
 import os.path
 import subprocess
+from numpy import matrix
+from numpy import linalg
 
 global cpps
-cpps = subprocess.Popen('"C:/Users/Gelsey Torres-Oviedo/Documents/Visual Studio 2013/Projects/PyAdaptVicon2Python/x64/Release/PyAdaptVicon2Python.exe"')
-time.sleep(3)
+cpps = subprocess.Popen('"C:/Users/Gelsey Torres-Oviedo/Documents/Visual Studio 2013/Projects/Vicon2Python_DK2_rev1/x64/Release/Vicon2Python_DK2_rev1.exe"')
+time.sleep(2)
 
 
 viz.splashScreen('C:\Users\Gelsey Torres-Oviedo\Desktop\VizardFolderVRServer\Logo_final.jpg')
@@ -72,78 +74,95 @@ time.sleep(2)#show off our cool logo, not really required but cool
 #myLines = viz.endLayer() 
 
 Eyedistance = -1.5
-viz.MainView.setPosition(0,0.35,Eyedistance)
+viz.MainView.setPosition(0,0.25,Eyedistance)
 viz.MainView.setEuler(0,0,0)
 
-#global faketarget #asthetic value, arbitrarily chosen to look good, cursor will be scaled to hit this value when perfect assymetry is achieved.
-#faketarget = 0.25 #DO NOT CHANGE!!!!
+global faketarget #asthetic value, arbitrarily chosen to look good, cursor will be scaled to hit this value when perfect assymetry is achieved.
+faketarget = 0.25 #DO NOT CHANGE!!!!
 
 #set target tolerance for ANK-ANK length at HS
 global targetR
+targetR = 0.5
 global targetL
+targetL = 0.5
 
-#look for the file
-if os.path.isfile('C:\Users\Gelsey Torres-Oviedo\Desktop\VizardFolderVRServer\EffortTargets.csv'):
-	f = open('C:\Users\Gelsey Torres-Oviedo\Desktop\VizardFolderVRServer\EffortTargets.csv','r')
-	line1 = f.readline()
-	line1 = line1.replace('\n','')
-	line2 = line1.split(',')
-#	print('line2 ',line2)
-	
-	targetR = float(line2[0])#always the first value
-	targetL = float(line2[1])#always the second value
-else:
-	print('ERROR: Targets definition file not available, cannot determine targets...\n')
-	
-print('TargetR :', targetR)
-print('TargetL :', targetL)
-print('target SA: ',(targetR-targetL)/(targetR+targetL))
+global psudoR
+psudoR = 1
+global psudoL
+psudoL = 1
 
 global targettol
 targettol = 0.05/2
 
-'''
+global dummyR # dummy is a list
+dummyR = [0]*5
+
+global dummyL
+dummyL = [0]*5
+
+
+global rscale # values to scale cursor with, so that perfect hit lands in middle of faketarget
+rscale = faketarget/(targetR)
+#print('rscale: ',rscale)
+global lscale
+lscale = faketarget/(targetL)
+
+
+global distheta#the view angles we'll need later
+distheta = 2*math.atan2(2*targettol,2*abs(Eyedistance))
+
+global distLZ
+distLZ = (lscale*2*targettol)/(2*math.tan(distheta/2))
+
+global distRZ
+distRZ = (rscale*2*targettol)/(2*math.tan(distheta/2))
+
+global widetheta
+widetheta = 2*math.atan2(0.2,2*abs(Eyedistance))
+
+
+global wideRX
+wideRX = 2*(distRZ)*math.tan(widetheta/2)
+
+global distRX
+distRX = 2*distRZ*math.tan(widetheta/2)
+
+global wideLX
+wideLX = 2*(distLZ)*math.tan(widetheta/2)
+
+global distLX
+#distLX = wideLX/(2*math.tan(widetheta/2))
+distLX = 2*distLZ*math.tan(widetheta/2)
+
+
+#print(' wideLX: ',wideLX,'wideRX',wideRX)
+
 #viz.startLayer(viz.LINES) 
-#viz.vertex(-1,targettol,-0.0001) #Vertices are split into pairs. 
-#viz.vertex(1,targettol,-0.0001) 
+#viz.vertex(-1,-0.25,-0.0001) #Vertices are split into pairs. 
+#viz.vertex(1,-0.25,-0.0001) 
+#myLines = viz.endLayer()
+#
+#viz.startLayer(viz.LINES) 
+#viz.vertex(-1,0,-0.0001) #Vertices are split into pairs. 
+#viz.vertex(1,0,-0.0001) 
+#myLines = viz.endLayer()
+#
+#viz.startLayer(viz.LINES) 
+#viz.vertex(0.2,0.5,-0.0001) #Vertices are split into pairs. 
+#viz.vertex(0.2,-0.5,-0.0001) 
+#myLines = viz.endLayer()
+#
+#viz.startLayer(viz.LINES) 
+#viz.vertex(-0.2,0.5,-0.0001) #Vertices are split into pairs. 
+#viz.vertex(-0.2,-0.5,-0.0001) 
 #myLines = viz.endLayer() 
 
-#global rscale # values to scale cursor with, so that perfect hit lands in middle of faketarget
-#rscale = faketarget/(targetR)
-##print('rscale: ',rscale)
-#global lscale
-#lscale = faketarget/(targetL)
-#
-#
-#global distheta#the view angles we'll need later
-#distheta = 2*math.atan2(2*targettol,2*abs(Eyedistance))
-#global widetheta
-#widetheta = 2*math.atan2(0.2,2*abs(Eyedistance))
-#
-#global distRZ
-#distRZ = (2*targettol*rscale)/(2*math.tan(distheta/2))
-#global wideX
-#wideRX = 2*(Eyedistance+distRZ)*math.tan(widetheta/2)
-#print(wideRX)
-#global distRX
-#distRX = wideRX/(2*math.tan(widetheta/2))
-
-
-#global distLZ
-#distLZ = (2*targettol*lscale)/(2*math.tan(distheta/2))
-#global wideLX
-#wideLX = 2*(Eyedistance+distLZ)*math.tan(widetheta/2)
-#
-#print(' wideLX: ',wideLX,'wideRX',wideRX)
-#
-'''
-
 global boxL
-boxL = viz.addTexQuad(pos=[-0.2,targetL,0],scale=[0.2,2*targettol,0])
+boxL = viz.addTexQuad(pos=[-0.2,faketarget,0],scale=[0.2,2*targettol,0])
 boxL.color(0,0.7,1)
 boxL.alpha(0.7)
 global boxR
-boxR = viz.addTexQuad(pos=[0.2,targetR,0],scale=[0.2,2*targettol,0])
+boxR = viz.addTexQuad(pos=[0.2,faketarget,0],scale=[0.2,2*targettol,0])
 #boxR.color(0,0.7,1)
 #boxR.color(0,1,0.3)
 boxR.color(1,0.2,0)
@@ -152,7 +171,7 @@ boxR.alpha(0.7)
 
 global HistBallR
 HistBallR = viz.add('box.wrl', color=(2,2,0.7), scale=[0.2,0.01,0.001], cache=viz.CACHE_NONE)
-HistBallR.setPosition([0.2,targetR+0.1,0])
+HistBallR.setPosition([0.2,targetR,0])
 HistBallR.alpha(0.8)
 #HistBallR.visible(0)
 
@@ -164,10 +183,11 @@ HistBallL.alpha(0.8)
 
 global cursorR
 #cursorR = viz.add('box3.obj', color=viz.RED, scale=[0.1,0.25,0.001], cache=viz.CACHE_NONE)
-cursorR = viz.add('box3.obj', scale=[0.2,0.1,0.001], cache=viz.CACHE_NONE)
+cursorR = viz.add('box3.obj', scale=[0.2,0.01,0.001], cache=viz.CACHE_NONE)
 #cursorR.setPosition([0.2,-1*faketarget,0])
 cursorR.color(0.5,0.5,0.5)
-cursorR.setPosition([0.2,0,0])
+#cursorR.setPosition([0.2,0,0])
+cursorR.setPosition([distRX,0,Eyedistance+distRZ])
 cursorR.disable(viz.LIGHTING)#we want unrealistic lighting to avoid perspective
 
 global cursorL
@@ -175,7 +195,8 @@ global cursorL
 cursorL = viz.add('box3.obj', scale=[0.2,0.01,0.001], cache=viz.CACHE_NONE)
 cursorL.color(0.5,0.5,0.5)
 #cursorL.setPosition([-0.2,-1*faketarget,0])
-cursorL.setPosition([-0.2,0,0])
+#cursorL.setPosition([-0.2,0,0])
+cursorL.setPosition([-distLX,0,Eyedistance+distLZ])
 cursorL.disable(viz.LIGHTING)
 
 
@@ -220,8 +241,10 @@ global lscore
 rscore = 0
 lscore = 0
 
-rightcounter = viz.addText(str(rscore),pos=[.4,0.4,0],scale=[0.1,0.1,0.1])
-leftcounter = viz.addText(str(lscore),pos=[-.6,0.4,0],scale=[0.1,0.1,0.1])
+global tempR
+tempR = [0]
+global tempL
+tempL = [0]
 
 
 def UpdateViz(root,q,speedlist,qq,savestring,q3):
@@ -240,14 +263,28 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 		global Lforceold
 		global RHS
 		global LHS
-#		global rscale
-#		global lscale
+		global rscale
+		global lscale
 		global rgorb
 		global lgorb
 		global rattempts
 		global lattempts
 		global rscore
 		global lscore
+		global psudoR
+		global psudoL
+		global dummyR
+		global dummyL
+		global faketarget
+		global distLZ
+		global distRZ
+		global wideLX
+		global wideRX
+		global distLX
+		global distRX
+		global tempR
+		global tempL
+
 		
 		root = q.get()
 		data = ParseRoot(root)
@@ -280,14 +317,54 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 		else:
 			cursorL.visible(0)
 			
-		cursorR.setScale(0.2,(LANKY-RANKY),0.001)
-		cursorL.setScale(0.2,(RANKY-LANKY),0.001)
+		cursorR.setScale(wideRX,rscale*(LANKY-RANKY),0.001)
+		cursorL.setScale(wideLX,lscale*(RANKY-LANKY),0.001)
 		#RHS
 		if (Rforceold >= -30) & (Rz < -30):
 			steplengthR = LANKY-RANKY
+			
+			if (LANKY == 0) | (RANKY == 0):
+				
+				dummyR.append(0)
+				dummyR.pop(0)	
+			
+			else:
+				
+				dummyR.append(steplengthR)
+				dummyR.pop(0)
+				print dummyR
+			
+
 #			print('R error',abs(steplengthR-targetR))
-			HistBallR.setPosition([0.2,steplengthR,0])
+			HistBallR.setPosition([distRX,rscale*steplengthR,Eyedistance+distRZ-0.001])
 #			HistBallR.setPosition([0.2,-0.25+steplengthR*rscale,0])
+			HistBallR.setScale([wideRX,rscale*0.01,0])
+		
+			if (psudoR == 6):
+				tempR = dummyR
+				while 0 in tempR:
+					tempR.remove(0)
+				print(tempR)
+				steplengthR_new = sum(tempR)/len(tempR)
+#				print steplengthR_new
+				targetL = steplengthR_new
+				lscale = faketarget/targetL
+				distLZ = (lscale*2*targettol)/(2*math.tan(distheta/2))
+				wideLX = 2*(distLZ)*math.tan(widetheta/2)
+				#distLX = wideLX/(2*math.tan(widetheta/2))
+				distLX = 2*distLZ*math.tan(widetheta/2)
+				boxL.setPosition([-distLX,faketarget,Eyedistance+distLZ])
+				boxL.setScale([wideLX,lscale*2*targettol,0])
+				
+				cursorL.setPosition([-distLX,0,Eyedistance+distLZ])
+				cursorL.setScale(wideLX,lscale*(RANKY-LANKY),0.001)
+				HistBallL.setPosition([-distLX,lscale*steplengthL,Eyedistance+distLZ-0.001])
+				HistBallL.setScale([wideLX,lscale*0.01,0])
+				
+				psudoR = 1
+				
+			psudoR = psudoR+1
+				
 			RHS = 1
 			rattempts += 1
 			#biofeedback
@@ -299,17 +376,57 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 				boxR.color(1,0.2,0)
 				rgorb = 0
 			print('Rscore: ',rscore,'/',rattempts)
-			#rightcounter.message(str(rscore)+'/'+str(rattempts))
-			rightcounter.message(str(rscore))
 		elif (Rforceold <= -30) & (Rz > -30):#RTO
 			boxR.color(0,0.7,1)
 		else:
 			RHS = 0
+		
 			
 		#LHS
 		if (Lforceold >= -30) & (Lz < -30):
+			
 			steplengthL = RANKY-LANKY
-			HistBallL.setPosition([-0.2,steplengthL,0])
+			
+			if (LANKY == 0) | (RANKY == 0):
+				
+				dummyL.append(0)
+				dummyL.pop(0)	
+			
+			else:
+				
+				dummyL.append(steplengthL)
+				dummyL.pop(0)
+				print dummyL
+
+			HistBallL.setPosition([-distLX,lscale*steplengthL,Eyedistance+distLZ-0.001])
+			HistBallL.setScale([wideLX,lscale*0.01,0])
+			
+			if (psudoL == 6):
+				tempL = dummyL
+				while 0 in tempL:
+					tempL.remove(0)
+				print(tempL)
+				steplengthL_new = sum(tempL)/len(tempL)
+#				print steplengthL_new
+				targetR = steplengthL_new
+				rscale = faketarget/targetR
+				distRZ = (rscale*2*targettol)/(2*math.tan(distheta/2))
+				wideRX = 2*(distRZ)*math.tan(widetheta/2)
+				distRX = 2*distRZ*math.tan(widetheta/2)
+				
+				boxR.setPosition([distRX,faketarget,Eyedistance+distRZ])
+				boxR.setScale([wideRX,rscale*2*targettol,0])
+				
+
+				cursorR.setPosition([distRX,0,Eyedistance+distRZ])
+				cursorR.setScale(wideRX,rscale*(LANKY-RANKY),0.001)
+				HistBallR.setPosition([distRX,rscale*steplengthR,Eyedistance+distRZ-0.001])
+				HistBallR.setScale([wideRX,rscale*0.01,0])
+
+
+				psudoL = 1
+			psudoL = psudoL+1
+			
 			LHS = 1
 			lattempts += 1
 #			print('L error',abs(steplengthL-targetL))
@@ -321,12 +438,11 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 				boxL.color(1,0.2,0)
 				lgorb = 0
 			print('Lscore: ',lscore,'/',lattempts)
-			#leftcounter.message(str(lscore)+'/'+str(lattempts))
-			leftcounter.message(str(lscore))
 		elif (Lforceold <= -30) & (Lz > -30):#LTO
 			boxL.color(0,0.7,1)
 		else:
 			LHS = 0
+			
 		
 		Rforceold = Rz
 		Lforceold = Lz
@@ -337,7 +453,7 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 		
 		#calculate step lengths
 		
-#	cpps.kill()
+	cpps.kill()
 
 def runclient(root,q):
 	
@@ -387,7 +503,7 @@ def savedata(savestring,q3):
 	#initialize the file
 	mst = time.time()
 	mst2 = int(round(mst))
-	mststring = str(mst2)+'EffortStudy_R5.txt'
+	mststring = str(mst2)+'GeneralizationStudy_Yashar_rev1.txt'
 	print("Data file created named: ")
 	print(mststring)
 	file = open(mststring,'w+')

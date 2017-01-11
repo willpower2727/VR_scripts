@@ -29,9 +29,10 @@ import subprocess
 import win32gui
 import numpy as np
 import oculus
+import vizfx.postprocess
 
 global cpps
-cpps = subprocess.Popen("C:/Users/Gelsey Torres-Oviedo/Documents/Visual Studio 2013/Projects/Vicon2Python_DK2_rev1/x64/Release/Vicon2Python_DK2_rev1.exe")
+cpps = subprocess.Popen('"C:/Users/Gelsey Torres-Oviedo/Documents/Visual Studio 2013/Projects/Vicon2Python_DK2_rev1/x64/Release/Vicon2Python_DK2_rev1.exe"')
 time.sleep(3)
 
 viz.splashScreen('C:\Users\Gelsey Torres-Oviedo\Desktop\VizardFolderVRServer\Logo_final_DK2.jpg')
@@ -39,11 +40,21 @@ viz.go(
 #viz.FULLSCREEN #run world in full screen
 )
 
+monoWindow = viz.addWindow(size=(1,1), pos=(0,1), scene=viz.addScene())
+monoQuad = viz.addTexQuad(parent=viz.ORTHO, scene=monoWindow)
+monoQuad.setBoxTransform(viz.BOX_ENABLED)
+monoQuad.setTexQuadDisplayMode(viz.TEXQUAD_FILL)
+texture = vizfx.postprocess.getEffectManager().getColorTexture()
+
+def UpdateTexture():
+    monoQuad.texture(texture)
+vizact.onupdate(0, UpdateTexture)
+
 global targettol
 targettol = 0.02
 
 global target
-target = 0.20375
+target = 0.22625
 
 global transcale
 transcale = 0.1/target
@@ -59,8 +70,10 @@ global hmd
 view = viz.addView
 hmd = oculus.Rift()
 hmd.getSensor
+profile = hmd.getProfile()
+hmd.setIPD(profile.ipd)
 
-viz.MainView.setPosition(0, 0.1, -0.57)
+viz.MainView.setPosition(0, 0.1, -0.47)
 viz.MainView.setEuler(0,0,0)
 
 global sagt
@@ -173,7 +186,7 @@ global phase
 phase = 500
 
 global textwin
-textwin = viz.addText(str(phase),pos=[0,0,-0.02],scale=[0.015,0.015,0.015])
+textwin = viz.addText('',pos=[0,0,-0.02],scale=[0.015,0.015,0.015])
 
 
 def UpdateViz(root,q,savestring,q3):
@@ -223,7 +236,7 @@ def UpdateViz(root,q,savestring,q3):
 		RTOEY = float(data["RTOE"][1])/1000
 		LTOEY = float(data["LTOE"][1])/1000
 		
-		textwin.message(str(phase))
+#		textwin.message(str(phase))
 #		print(abs(LTOEX-RTOEX+xoff))
 		
 		if (stepind > STEPNUM):
@@ -254,6 +267,7 @@ def UpdateViz(root,q,savestring,q3):
 						print('error when attempting to highlight target...')
 				elif (abs(LTOEX-RTOEX+xoff)<targettol) & (abs(LTOEY-RTOEY+yoff)<targettol) & (Rz < -50) & (Lz < -50) :
 					touchdown = touchdown +1
+					
 			elif (LEG == 1):
 				cursor.setPosition(transcale*(RTOEX-LTOEX-xoff),transcale*(RTOEY-LTOEY-yoff),-0.02)
 				if (transcale*abs(RTOEX-LTOEX-xoff)<0.05) & (transcale*abs(RTOEY-LTOEY-yoff)<0.05):
@@ -332,6 +346,9 @@ def UpdateViz(root,q,savestring,q3):
 					ltouchy = (RTOEY-LTOEY-yoff)
 		elif (phase==3):
 			textwin.message('Test Complete!')
+			savestring = [FN,Rz,Lz,RHS,LHS,rtouchx,ltouchx,rtouchy,ltouchy,phase,highlight[stepind],RTOEX,LTOEX,RTOEY,LTOEY,xoff,yoff]#organize the data to be written to file
+			q3.put(savestring)
+			break
 		
 		
 		histzR = Rz

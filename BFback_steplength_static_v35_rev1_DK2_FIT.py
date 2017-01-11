@@ -3,11 +3,10 @@
 Subject is intended to stand still on the treadmill wearing plugin gait with hip marker set.
 Targets are displayed showing how far a subject should step forward.
 
-In version 3 feedback,and target are on. Cursor is off
-rev19 displays on the HMD, static, non updating viewpoint
+In version 35 feedback,and target are on. Cursor is off, but feedback is clamped, subject sees only 35% error
 
 #Use with V2P DK2 R1
-wda 10/28/2015
+wda 9/30/2016
 """
 import viz
 import vizshape
@@ -19,7 +18,7 @@ import socket
 import sys
 import io
 import re
-#import xml.etree.cElementTree as ElementTree
+import csv
 import threading
 import Queue
 import time
@@ -30,21 +29,42 @@ import array
 import math
 import vizlens
 import oculus
+import subprocess
+
+global cpps
+cpps = subprocess.Popen('"C:/Users/Gelsey Torres-Oviedo/Documents/Visual Studio 2013/Projects/Vicon2Python_DK2_rev2/x64/Release/Vicon2Python_DK2_rev2.exe"')
+time.sleep(3)
 
 viz.splashScreen('C:\Users\Gelsey Torres-Oviedo\Desktop\VizardFolderVRServer\Logo_final_DK2.jpg')
+viz.setMultiSample(8)
 viz.go(
 viz.FULLSCREEN #run world in full screen
 )
 
-time.sleep(2)#show off our cool logo, not really required but cool
-global hmd
-view = viz.addView
-hmd = oculus.Rift()
-hmd.getSensor
+monoWindow = viz.addWindow(size=(1,1), pos=(0,1), scene=viz.addScene())
+monoQuad = viz.addTexQuad(parent=viz.ORTHO, scene=monoWindow)
+monoQuad.setBoxTransform(viz.BOX_ENABLED)
+monoQuad.setTexQuadDisplayMode(viz.TEXQUAD_FILL)
+texture = vizfx.postprocess.getEffectManager().getColorTexture()
 
-viz.fov(110)
-pincushion = vizlens.PincushionDistortion()
-pincushion.setK1(0.2)
+def UpdateTexture():
+    monoQuad.texture(texture)
+vizact.onupdate(0, UpdateTexture)
+
+
+global hmd
+# Setup Oculus Rift HMD
+hmd = oculus.Rift()
+#if not hmd.getSensor():
+#	sys.exit('Oculus Rift not detected')
+#else:
+#	profile = hmd.getProfile()
+#	hmd.setIPD(profile.ipd)
+
+global sensei
+sensei = hmd.getSensor()
+profile = hmd.getProfile()
+hmd.setIPD(profile.ipd)
 
 global messagewin
 messagewin = vizinfo.InfoPanel('',align=viz.ALIGN_CENTER_TOP,fontSize=60,icon=False,key=None)
@@ -217,6 +237,8 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 			else:
 				RANKY = float(data["RANK"][1])/1000
 				LANKY = float(data["LANK"][1])/1000
+				RHIP = float(data["RHIP"][1])/1000
+				LHIP = float(data["LHIP"][1])/1000
 			
 			#state machine
 			if (phaxxe == 0):  #match ankles if needed
@@ -380,7 +402,8 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 					stepind = stepind+1
 					Rattempts = Rattempts+1
 #					cursorR.visible(0)#turn off the cursor
-					HistBallR.setPosition([0.2,LANKY-RANKY, 0])
+#					HistBallR.setPosition([0.2,LANKY-RANKY, 0]) 
+					HistBallR.setPosition([0.2,targetUr+0.35*(abs((LANKY-RANKY)-targetUr)), 0])
 					HistBallR.visible(1)
 					if (abs((LANKY-RANKY)-targetUr) <= targettol):
 						RCOUNT = RCOUNT+1
@@ -400,7 +423,8 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 					Lattempts = Lattempts+1
 #					cursorL.visible(0)
 					HistBallL.visible(1)
-					HistBallL.setPosition([-0.2,RANKY-LANKY, 0])
+#					HistBallL.setPosition([-0.2,RANKY-LANKY, 0])
+					HistBallL.setPosition([-0.2,targetUL+0.35*(abs((RANKY-LANKY)-targetUl)), 0])
 					if (abs((RANKY-LANKY)-targetUl) <= targettol):
 						LCOUNT = LCOUNT+1
 						lbad = 0
@@ -443,10 +467,10 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 			histzR = Rz
 			histzL = Lz
 			#save data
-			savestring = [FN,Rz,Lz,rgorb,lgorb,RANKY-LANKY,LANKY-RANKY,targetUr-(LANKY-RANKY),targetUl-(RANKY-LANKY)]#organize the data to be written to file
+			savestring = [FN,Rz,Lz,rgorb,lgorb,RANKY-LANKY,LANKY-RANKY,targetUr-(LANKY-RANKY),targetUl-(RANKY-LANKY),RANKY,LANKY,RHIP,LHIP]#organize the data to be written to file
 			q3.put(savestring)
 #			timeold = time.time()
-	
+	cpps.kill()
 #	q3.join()
 	#print stats
 	print('R',RCOUNT,'/',Rattempts)
@@ -534,21 +558,23 @@ def savedata(savestring,q3):
 	#initialize the file
 	mst = time.time()
 	mst2 = int(round(mst))
-	mststring = str(mst2)+'DK2rev19V3.txt'
+	mststring = str(mst2)+'DK2rev20V3.txt'
 	print("Data file created named: ")
 	print(mststring)
 	file = open(mststring,'w+')
-	json.dump(['FrameNumber','Rfz','Lfz','RGORB','LGORB','Rgamma','Lgamma','Rerror','Lerror'],file)
+	csvw = csv.writer(file)
+	csvw.writerow(['FrameNumber','Rfz','Lfz','rgorb','lgorb','rgamma','lgamma','rerror','lerror','RANK','LANK','RHIP','LHIP'])
 	file.close()
 	
 	file = open(mststring,'a')#reopen for appending only
+	csvw = csv.writer(file)
 	while not endflag.isSet():
 		savestring = q3.get()#look in the queue for data to write
 	
 		if savestring is None:
 			continue
 		else:
-			json.dump(savestring, file)
+			csvw.writerow(savestring)
 	print("savedata stop flag raised, finishing...")
 	while 1:
 		try:
@@ -560,7 +586,7 @@ def savedata(savestring,q3):
 			break
 			print("data finished write to file")
 		else:
-			json.dump(savestring, file)
+			csvw.writerow(savestring)
 			print("data still writing to file")
 		
 	print("savedata finished writing")

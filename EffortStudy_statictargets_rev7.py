@@ -1,20 +1,15 @@
 ﻿#This script displays real time biofeedback on Step Length 
-#targets are time invariant values determined from the worst stroke patient
-#static targets means that both legs can have different targets but the visual targets look the same
-#i.e. try to walk with baseline symmetry, or walk with 0.2 assymetry
 #
-#WDA 11/23/2015
+#WDA 10/19/2016
 #
 #Requirements:
 #
 #Nexus 1.x or 2.x
 #system config: MAR_BF_DEFAULT
 #
-# 
+#Rev 7 adds score counting and exploding targets with fire, targets can appear asymmetric in elevation
 #
-#Rev 5 uses the new color scheme, and discontinues forced perspective on the targets, now targets can show thir true relations (one can be higher than the other)
-#
-#Use V2P_DK2_R1
+#Use PyAdaptVicon2Python
 
 import viz
 import time
@@ -24,7 +19,7 @@ import io
 import re
 import threading
 import Queue
-import json
+import csv
 import vizact
 import vizinfo
 import random
@@ -39,6 +34,7 @@ import vizmat
 import vizlens
 import os.path
 import subprocess
+import time
 
 global cpps
 cpps = subprocess.Popen('"C:/Users/Gelsey Torres-Oviedo/Documents/Visual Studio 2013/Projects/PyAdaptVicon2Python/x64/Release/PyAdaptVicon2Python.exe"')
@@ -50,26 +46,6 @@ viz.go(
 viz.FULLSCREEN #run world in full screen
 )
 time.sleep(2)#show off our cool logo, not really required but cool
-
-#viz.startLayer(viz.LINES) 
-#viz.vertex(-1,-0.25,-0.0001) #Vertices are split into pairs. 
-#viz.vertex(1,-0.25,-0.0001) 
-#myLines = viz.endLayer()
-#
-#viz.startLayer(viz.LINES) 
-#viz.vertex(-1,0,-0.0001) #Vertices are split into pairs. 
-#viz.vertex(1,0,-0.0001) 
-#myLines = viz.endLayer()
-#
-#viz.startLayer(viz.LINES) 
-#viz.vertex(0.2,0.5,-0.0001) #Vertices are split into pairs. 
-#viz.vertex(0.2,-0.5,-0.0001) 
-#myLines = viz.endLayer()
-#
-#viz.startLayer(viz.LINES) 
-#viz.vertex(-0.2,0.5,-0.0001) #Vertices are split into pairs. 
-#viz.vertex(-0.2,-0.5,-0.0001) 
-#myLines = viz.endLayer() 
 
 Eyedistance = -1.5
 viz.MainView.setPosition(0,0.35,Eyedistance)
@@ -144,11 +120,25 @@ boxL.color(0,0.7,1)
 boxL.alpha(0.7)
 global boxR
 boxR = viz.addTexQuad(pos=[0.2,targetR,0],scale=[0.2,2*targettol,0])
+#boxR.color(viz.WHITE)
 #boxR.color(0,0.7,1)
 #boxR.color(0,1,0.3)
-boxR.color(1,0.2,0)
+#boxR.color(1,0.2,0)
+boxR.color(1,1,1)
 boxR.alpha(0.7)
 
+global fire1
+fire1 = viz.addChild('fire2.osg',scale=[2,2,2],pos=[0.2,targetR,0]) #right side
+global fire2
+fire2 = viz.addChild('fire2.osg',scale=[2,2,2],pos=[-0.2,targetL,0]) #left side
+fire1.setEuler(0,90,0)
+fire1.visible(0)
+fire2.setEuler(0,90,0)
+fire2.visible(0)
+viz.phys.enable()
+viz.phys.setGravity(0,0,0)
+#fire1p = fire1.collideSphere() #apply physics
+#fire2p = fire2.collideSphere()
 
 global HistBallR
 HistBallR = viz.add('box.wrl', color=(2,2,0.7), scale=[0.2,0.01,0.001], cache=viz.CACHE_NONE)
@@ -177,17 +167,6 @@ cursorL.color(0.5,0.5,0.5)
 #cursorL.setPosition([-0.2,-1*faketarget,0])
 cursorL.setPosition([-0.2,0,0])
 cursorL.disable(viz.LIGHTING)
-
-
-#setup counter panels
-#global RCOUNT
-#global LCOUNT
-#RCOUNT = 0
-#LCOUNT = 0
-##rightcounter = vizinfo.InfoPanel(str(RCOUNT),align=viz.ALIGN_RIGHT_TOP,fontSize=50,icon=False,key=None)
-#rightcounter = viz.addText(str(RCOUNT),pos=[4,targetR-0.2,12])
-##leftcounter = vizinfo.InfoPanel(str(LCOUNT),align=viz.ALIGN_LEFT_TOP,fontSize=50,icon=False,key=None)
-#leftcounter = viz.addText(str(LCOUNT),pos=[-4.4,targetL-0.2,12])
 
 global Rforceold
 global Lforceold
@@ -219,10 +198,69 @@ global rscore
 global lscore
 rscore = 0
 lscore = 0
+global lscore2
+lscore2 = 0
+global rscore2
+rscore2 = 0
 
+#counting score text objects
 rightcounter = viz.addText(str(rscore),pos=[.4,0.4,0],scale=[0.1,0.1,0.1])
 leftcounter = viz.addText(str(lscore),pos=[-.6,0.4,0],scale=[0.1,0.1,0.1])
+rightcounter.visible(0)
+leftcounter.visible(0)
 
+global t0
+t0 = time.time()
+
+global deltat
+deltat = 0
+
+global rxplode
+rxplode = viz.addChild('ExT1.osgb',pos=[0.2,targetR+targettol,0.005],scale=[2*targettol,2*targettol,0.00125])#make the target explode
+#rxplode = viz.addChild('ExT1.osgb',pos=[0.2,targetR+targettol,0.005],scale=[0.2,2*targettol,0])#make the target explode
+
+global lxplode
+lxplode = viz.addChild('ExT1.osgb',pos=[-0.2,targetL+targettol,0.005],scale=[2*targettol,2*targettol,0.00125])
+
+def hide1(nothing):
+	global fire1
+	global boxR
+	global HistBallR
+	fire1.visible(0)
+	boxR.visible(1)
+	HistBallR.visible(1)
+
+def hide2(nothing):
+	global fire2
+	global boxL
+	global HistBallL
+	fire2.visible(0)
+	boxL.visible(1)
+	HistBallL.visible(1)
+	
+#################################################################################################
+#added 10/24/2016 function to reset targets mid-trial using the same data file
+def AdjustTargets(none):
+	global targetL
+	global targetR
+	global boxL
+	global boxR
+	#look for the file
+	if os.path.isfile('C:\Users\Gelsey Torres-Oviedo\Desktop\VizardFolderVRServer\EffortTargets.csv'):
+		f = open('C:\Users\Gelsey Torres-Oviedo\Desktop\VizardFolderVRServer\EffortTargets.csv','r')
+		line1 = f.readline()
+		line1 = line1.replace('\n','')
+		line2 = line1.split(',')
+	#	print('line2 ',line2)
+		
+		targetR = float(line2[0])#always the first value
+		targetL = float(line2[1])#always the second value
+	else:
+		print('ERROR: Targets definition file not available, using previous values...')
+		
+	boxR.setPosition([0.2,targetR,0])
+	boxL.setPosition([-0.2,targetL,0])
+###################################################################################################
 
 def UpdateViz(root,q,speedlist,qq,savestring,q3):
 
@@ -240,14 +278,19 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 		global Lforceold
 		global RHS
 		global LHS
-#		global rscale
-#		global lscale
+		global rxplode
+		global lxplode
 		global rgorb
 		global lgorb
 		global rattempts
 		global lattempts
 		global rscore
+		global rscore2
 		global lscore
+		global lscore2
+		global deltat
+		global fire1
+		global fire2
 		
 		root = q.get()
 		data = ParseRoot(root)
@@ -255,20 +298,13 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 		Rz = float(data["Rz"])
 		Lz = float(data["Lz"])
 		
+		deltat = time.time()-t0
+		
 		if (len(data) < 8):
 			print('WARNING data missing from the stream, skipping this frame...')
 		else:
 			RANKY = float(data["RANK"][1])/1000
 			LANKY = float(data["LANK"][1])/1000
-#		print Rz
-#		try:
-#			RHIPY = float(data["RHIP"][1])/1000
-#			LHIPY = float(data["LHIP"][1])/1000
-#		except:
-#			RHIPY = float(data["RGT"][1])/1000
-#			LHIPY = float(data["LGT"][1])/1000
-
-#		print('RANKY: ',RANKY, ' LANKY: ',LANKY)
 		
 		if (LANKY-RANKY > 0) & (Rz > -10):#only visible in swing phase
 			cursorR.visible(1)
@@ -283,61 +319,129 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 		cursorR.setScale(0.2,(LANKY-RANKY),0.001)
 		cursorL.setScale(0.2,(RANKY-LANKY),0.001)
 		#RHS
-		if (Rforceold >= -30) & (Rz < -30):
+		if (Rforceold >= -40) & (Rz < -40):
 			steplengthR = LANKY-RANKY
-#			print('R error',abs(steplengthR-targetR))
 			HistBallR.setPosition([0.2,steplengthR,0])
-#			HistBallR.setPosition([0.2,-0.25+steplengthR*rscale,0])
 			RHS = 1
 			rattempts += 1
+#			boxL.visible(1)
+#			boxR.visible(0)
+#			HistBallR.visible(0)
+#			fire1.visible(1)
+#			rxplode.visible(1)
+#			rxplode.setAnimationTime(0)
+#			rxplode.setAnimationState(0)
+#			vizact.ontimer2(0.6,0,hide1,0)	
 			#biofeedback
 			if (abs(steplengthR-targetR)<targettol):
-				boxR.color(0,1,0.3)
+#				boxR.color(0,1,0.3)#don't turn box green but make disappear and show explosion
+				boxR.visible(0)
+				HistBallR.visible(0)
 				rgorb = 1
 				rscore += 1
+				
+				if (deltat >=180):
+					rscore2 += 1
+				if (abs(steplengthR-targetR)<(targettol/3)):	
+					fire1.visible(1)
+					
+				rxplode.visible(1)
+				rxplode.setAnimationTime(0.1)
+				rxplode.setAnimationState(0)
+				vizact.ontimer2(0.6,0,hide1,0)
+				
 			else:
+#				boxR.visible(1)
 				boxR.color(1,0.2,0)
 				rgorb = 0
 			print('Rscore: ',rscore,'/',rattempts)
-			#rightcounter.message(str(rscore)+'/'+str(rattempts))
-			rightcounter.message(str(rscore))
-		elif (Rforceold <= -30) & (Rz > -30):#RTO
+			#t = time.time()q
+			#deltat = t-t0
+			print('t =',deltat)
+			
+			if (deltat >=180):
+				rightcounter.visible(1)
+				#rightcounter.message(str(rscore)+'/'+str(rattempts))
+				rightcounter.message(str(rscore2))
+				
+		elif (Rforceold <= -40) & (Rz > -40):#RTO
 			boxR.color(0,0.7,1)
+#			boxR.visible(1)
+#			HistBallR.visible(1)
+#			rxplode.visible(0)
+#			fire2.visible(0)
+			lxplode.visible(0)
+			boxL.visible(1)
+			HistBallL.visible(1)
+			RHS = 0
 		else:
 			RHS = 0
 			
 		#LHS
-		if (Lforceold >= -30) & (Lz < -30):
+		if (Lforceold >= -40) & (Lz < -40):
 			steplengthL = RANKY-LANKY
 			HistBallL.setPosition([-0.2,steplengthL,0])
 			LHS = 1
 			lattempts += 1
-#			print('L error',abs(steplengthL-targetL))
+
+#			fire2.visible(1)
+#			lxplode.visible(1)
+#			lxplode.setAnimationTime(0)
+#			lxplode.setAnimationState(0)
+#			vizact.ontimer2(0.6,0,hide2,0)
+#			boxL.visible(0)
+#			HistBallL.visible(0)
+#			boxR.visible(1)
+
 			if (abs(steplengthL-targetL)<targettol):
-				boxL.color(0,1,0.3)
+#				boxL.color(0,1,0.3)
+				boxL.visible(0)
+				HistBallL.visible(0)
 				lgorb = 1
 				lscore += 1
+				if (deltat >=180):
+					lscore2 += 1
+				if (abs(steplengthL-targetL)<(targettol/3)):	
+					fire2.visible(1)
+					
+				lxplode.visible(1)
+				lxplode.setAnimationTime(0.1)
+				lxplode.setAnimationState(0)
+				vizact.ontimer2(0.6,0,hide2,0)
 			else:
+#				boxL.visible(1)
 				boxL.color(1,0.2,0)
 				lgorb = 0
 			print('Lscore: ',lscore,'/',lattempts)
 			#leftcounter.message(str(lscore)+'/'+str(lattempts))
-			leftcounter.message(str(lscore))
-		elif (Lforceold <= -30) & (Lz > -30):#LTO
+			#t = time.time()
+			#deltat = t-t0
+			if (deltat >=180):	
+				leftcounter.visible(1)
+				leftcounter.message(str(lscore2))
+			
+		elif (Lforceold <= -40) & (Lz > -40):#LTO
 			boxL.color(0,0.7,1)
+#			lxplode.visible(0)
+			rxplode.visible(0)
+#			fire1.visible(0)
+#			boxL.visible(1)
+#			HistBallL.visible(1)
+			boxR.visible(1)
+			HistBallR.visible(1)
+			LHS = 0
+
 		else:
 			LHS = 0
 		
 		Rforceold = Rz
 		Lforceold = Lz
 		
-#		savestring = [FN,Rz,Lz,RHIPY,LHIPY,RANKY,LANKY,fast,slow,RHS,LHS]
-		savestring = [FN,Rz,Lz,RANKY,LANKY,steplengthR,steplengthL,RHS,LHS,rgorb,lgorb]
+		savestring = [FN,Rz,Lz,RANKY,LANKY,steplengthR,steplengthL,RHS,LHS,rgorb,lgorb,targetL,targetR]
 		q3.put(savestring)
 		
-		#calculate step lengths
 		
-#	cpps.kill()
+	cpps.kill()
 
 def runclient(root,q):
 	
@@ -387,24 +491,25 @@ def savedata(savestring,q3):
 	#initialize the file
 	mst = time.time()
 	mst2 = int(round(mst))
-	mststring = str(mst2)+'EffortStudy_R5.txt'
+	mststring = str(mst2)+'EffortStudy_R7.txt'
 	print("Data file created named: ")
 	print(mststring)
 	file = open(mststring,'w+')
-#	json.dump(['FrameNumber','Rfz','Lfz','RHIPy','LHIPy','RANky','LANKy','fastSLASYM','slowSLASYM','RHS','LHS'],file)
-	json.dump(['FrameNumber','Rfz','Lfz','RANky','LANKy','steplengthR','steplengthL','RHS','LHS','Rgorb','Lgorb'],file)
+	csvw = csv.writer(file)
+	csvw.writerow(['FrameNumber','Rfz','Lfz','RANky','LANKy','steplengthR','steplengthL','RHS','LHS','Rgorb','Lgorb','targetL','targetR'])
 	file.close()
 	
 	
 	
 	file = open(mststring,'a')#reopen for appending only
+	csvw = csv.writer(file)
 	while not endflag.isSet():
 		savestring = q3.get()#look in the queue for data to write
 	
 		if savestring is None:
 			continue
 		else:
-			json.dump(savestring, file)
+			csvw.writerow(savestring)
 	print("savedata stop flag raised, finishing...")
 	while 1:
 		try:
@@ -416,7 +521,7 @@ def savedata(savestring,q3):
 			break
 			print("data finished write to file")
 		else:
-			json.dump(savestring, file)
+			csvw.writerow(savestring)
 			print("data still writing to file")
 		
 	print("savedata finished writing")
@@ -478,4 +583,4 @@ print("\n")
 print("press 'q' to stop")
 
 vizact.onkeydown('q',raisestop,'biggle')#biggle is meaningless, just need to pass something into the raisestop callback
-	
+#vizact.onkeydown('r',AdjustTargets,'biggle')#biggle is meaningless, reload target values from the same file mid-trial. Press 'r'

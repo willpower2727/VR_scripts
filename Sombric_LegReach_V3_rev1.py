@@ -1,9 +1,9 @@
 ﻿#Oculus assisted leg reaching task, to be performed before and throughout the split belt paradigm
 #
 #Subjects see a static display which give cues about which target to reach for.
-#V1 is a familiarization task which shows full feedback with target cues
+#V3 is a training task which shows full feedback with target cues followed by several trials with no feedback for practice
 #
-#William Anderton 4/4/2016
+#William Anderton 8/22/2016
 #V2P_DK2_R1
 
 import viz
@@ -54,7 +54,7 @@ global targettol
 targettol = 0.02
 
 global target
-target = 0.20375
+target = 0.22625
 
 global transcale
 transcale = 0.1/target
@@ -65,6 +65,17 @@ LEG = 0 #0 for right leg, 1 for left
 #declare the total number of steps to attempt each target
 global STEPNUM
 STEPNUM =50
+
+global samwise
+samwise = list()
+
+for x in range(1,3,1):
+	samwise = samwise+[0]*20
+	samwise = samwise+[1]*5
+	
+#print("samwise")
+#print(samwise)
+#print(len(samwise))
 
 global hmd
 view = viz.addView
@@ -147,7 +158,7 @@ touchdown = 0
 
 #make array of test order:
 highlight = [1,3]*2*STEPNUM
-print(highlight)
+#print(highlight)
 
 global stepind
 stepind = 0
@@ -238,13 +249,14 @@ def UpdateViz(root,q,savestring,q3):
 #		textwin.message(str(phase))
 #		print(abs(LTOEX-RTOEX+xoff))
 		
-		if (stepind >= STEPNUM):
+		if (stepind > STEPNUM):
 			phase = 3
 		
 		if (phase == 0):#start at the origin box
 			sagt.color(viz.GRAY)
 			latt.color(viz.GRAY)
 			origin.color(0,0.7,1)
+			cursor.visible(1)
 #			print(touchdown)
 			if (LEG == 0):
 				cursor.setPosition(transcale*(LTOEX-RTOEX+xoff),transcale*(LTOEY-RTOEY+yoff),-0.02)
@@ -288,6 +300,10 @@ def UpdateViz(root,q,savestring,q3):
 					touchdown = touchdown +1
 					
 		elif (phase == 1):#wait for toe off
+			if samwise[stepind] == 1:
+				cursor.visible(0)
+			else:
+				cursor.visible(1)
 			if (LEG == 0):
 				cursor.setPosition(transcale*(LTOEX-RTOEX+xoff),transcale*(LTOEY-RTOEY+yoff),-0.02)
 				touchdown = 0
@@ -343,7 +359,7 @@ def UpdateViz(root,q,savestring,q3):
 					ltouchy = (RTOEY-LTOEY-yoff)
 		elif (phase==3):
 			textwin.message('Test Complete!')
-			savestring = [FN,Rz,Lz,RHS,LHS,rtouchx,ltouchx,rtouchy,ltouchy,phase,highlight[stepind],RTOEX,LTOEX,RTOEY,LTOEY,xoff,yoff]#organize the data to be written to file
+			savestring = [FN,Rz,Lz,RHS,LHS,rtouchx,ltouchx,rtouchy,ltouchy,phase,highlight[stepind],RTOEX,LTOEX,RTOEY,LTOEY,xoff,yoff,samwise[stepind]]#organize the data to be written to file
 			q3.put(savestring)
 			break
 		
@@ -351,7 +367,7 @@ def UpdateViz(root,q,savestring,q3):
 		histzR = Rz
 		histzL = Lz
 		#save data
-		savestring = [FN,Rz,Lz,RHS,LHS,rtouchx,ltouchx,rtouchy,ltouchy,phase,highlight[stepind],RTOEX,LTOEX,RTOEY,LTOEY,xoff,yoff]#organize the data to be written to file
+		savestring = [FN,Rz,Lz,RHS,LHS,rtouchx,ltouchx,rtouchy,ltouchy,phase,highlight[stepind],RTOEX,LTOEX,RTOEY,LTOEY,xoff,yoff,samwise[stepind]]#organize the data to be written to file
 		q3.put(savestring)
 			
 	cpps.kill()
@@ -428,12 +444,12 @@ def savedata(savestring,q3):
 	#initialize the file
 	mst = time.time()
 	mst2 = int(round(mst))
-	mststring = str(mst2)+'SombricLegReach_DK2_V1_rev1.txt'
+	mststring = str(mst2)+'SombricLegReach_DK2_V3_rev1.txt'
 	print("Data file created named: ")
 	print(mststring)
 	file = open(mststring,'w+')
 	csvw = csv.writer(file)
-	csvw.writerow(['FrameNumber','Rfz','Lfz','RHS','LHS','rtouchx','ltouchx','rtouchy','ltouchy','phase','highlight','RTOEX','LTOEX','RTOEY','LTOEY','xoffset','yoffset'])
+	csvw.writerow(['FrameNumber','Rfz','Lfz','RHS','LHS','rtouchx','ltouchx','rtouchy','ltouchy','phase','highlight','RTOEX','LTOEX','RTOEY','LTOEY','xoffset','yoffset','samwise'])
 	
 #	json.dump(['FrameNumber','Rfz','Lfz','RHS','LHS','rtouchx','ltouchx','rtouchy','ltouchy'],file)
 	file.close()
