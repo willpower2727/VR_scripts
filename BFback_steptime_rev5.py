@@ -5,6 +5,8 @@ This script updates left and right cursors based on step time, using a flip-flop
 WDA 1/22/2015
 
 rev5 is the first revision to use Python2CPP client as source of data instead of TMM
+
+V2P R1
 """
 
 import socket
@@ -20,15 +22,15 @@ import time
 viz.splashScreen('C:\Users\Gelsey Torres-Oviedo\Desktop\VizardFolderVRServer\Logo_final.jpg')
 viz.go(
 
-#viz.FULLSCREEN
+viz.FULLSCREEN
 )
 
 #set target tolerance for step time
 global targetL
-targetL = 0.5
+targetL = 0.9
 
 global targetR
-targetR = 0.5
+targetR = 0.9
 
 global targettol
 targettol = 0.05
@@ -99,7 +101,7 @@ def UpdateViz(root,q):
 		temp3 = lp1.attrib.values()
 		Lz = float(temp3[0])
 		
-		if (Rz < -30) & (histzR > -30):
+		if (Rz < -30) & (histzR >= -30):#RHS
 			cursorR.visible(0)# hide right side show left
 			cursorL.visible(1)
 			if (abs(steptime - targetR) < targettol):
@@ -108,7 +110,7 @@ def UpdateViz(root,q):
 				boxR.color( viz.BLUE )
 			HistBallR.setPosition([0.2, steptime, 0])
 			steptime = 0
-		elif (Lz < -30) & (histzL > -30):
+		elif (Lz < -30) & (histzL >= -30): #LHS
 			cursorR.visible(1)
 			cursorL.visible(0)
 			if (abs(steptime - targetL) < targettol):

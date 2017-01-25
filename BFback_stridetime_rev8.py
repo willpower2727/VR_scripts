@@ -1,4 +1,4 @@
-﻿#Stridetime rev8 is made to work with V2P R3, fastest
+﻿#Stridetime rev8 is made to work with V2P R4, fastest
 
 #WDA 3/25/2015
 
@@ -16,9 +16,13 @@ import vizact
 
 #check vizard4/bin/vizconfig to change which monitor displays the VR window
 viz.splashScreen('C:\Users\Gelsey Torres-Oviedo\Desktop\VizardFolderVRServer\Logo_final.jpg')
+viz.setMultiSample(8)
+viz.fov(60)
 viz.go(
 viz.FULLSCREEN
 )
+
+
 
 #setup the VR space with objects
 global scalorxx

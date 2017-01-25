@@ -4,9 +4,9 @@ Subject is intended to stand still on the treadmill wearing plugin gait with hip
 Targets are displayed showing how far a subject should step forward.
 
 In version 1 feedback, cursor are off
-rev13 only moves one leg at a time and seeks to instruct the subject 
+rev10 only moves one leg at a time and seeks to instruct the subject 
 
-#Use with V2P R3
+#Use with V2P R4
 wda 4/8/2015
 """
 import viz
@@ -34,20 +34,19 @@ viz.go(
 viz.FULLSCREEN #run world in full screen
 )
 time.sleep(2)#show off our cool logo, not really required but cool
-global messagewin
+global messagewinf
 messagewin = vizinfo.InfoPanel('',align=viz.ALIGN_CENTER_TOP,fontSize=60,icon=False,key=None)
 
 #messagewin.visible(0)
 #set target tolerance for stride length
 global targetXl
-targetXl =0.50646
+targetXl =0.60195
 global targetXr
-targetXr = 0.54477
+targetXr = 0.60325
 global targetUl
-targetUl =0.50646
+targetUl =0.60195
 global targetUr
-targetUr = 0.54477
-
+targetUr = 0.60325
 
 global targettol
 targettol = 0.0375# 5cm total
@@ -84,7 +83,7 @@ RCOUNT = 0
 LCOUNT = 0
 
 rightcounter = viz.addText(str(RCOUNT),pos=[.4,0,0],scale=[0.1,0.1,0.1])
-leftcounter = viz.addText(str(LCOUNT),pos=[-.46,0,0],scale=[0.1,0.1,0.1])
+leftcounter = viz.addText(str(LCOUNT),pos=[-.6,0,0],scale=[0.1,0.1,0.1])
 
 global RGOB
 RGOB = 0 #this will be 0 or 1, depending on success or failure
@@ -114,7 +113,7 @@ neutralL.setPosition([-0.2,0,0])
 global HistBallR
 HistBallR = viz.add('box.wrl', color=viz.YELLOW, scale=[0.2,0.01,0.001], cache=viz.CACHE_NONE)
 HistBallR.setPosition([0.2,targetXr,0])
-HistBallR.setEuler(180,0,0)
+#HistBallR.setEuler(180,0,0)
 HistBallR.alpha(0.8)
 
 global HistBallL
@@ -233,9 +232,9 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 						phaxxe = 1 #proceed
 					elif (randy[stepind-1] == 1) & (randy[stepind] == 2): #need to match ankles first!
 						#move right ankle to left ankle
-						if (Rz < -30) & (Lz < -30) &(abs(1.45-targetXr-RANKY) >= 0.04):
-							Rspeed = int(300*math.copysign(1,1.45-targetXr-RANKY))
-						elif (Rz < -30) & (Lz < -30) &(abs(1.45-targetXr-RANKY) < 0.04):
+						if (Rz < -30) & (Lz < -30) &(abs(1.5-targetXr-RANKY) >= 0.04):
+							Rspeed = int(300*math.copysign(1,1.5-targetXr-RANKY))
+						elif (Rz < -30) & (Lz < -30) &(abs(1.5-targetXr-RANKY) < 0.04):
 							Rspeed = 0
 							phaxxe = 1
 						else:
@@ -243,9 +242,9 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 
 					elif (randy[stepind-1] == 2) & (randy[stepind] == 1): #need to match ankles first
 #						if (Rz < -30) & (Lz < -30) & (RANKY-LANKY >= 0.04):
-						if (Rz < -30) & (Lz < -30) & (abs(1.45-targetXl-LANKY) >= 0.04):
-							Lspeed = int(300*math.copysign(1,1.45-targetXl-LANKY))
-						elif (Rz < -30) & (Lz < -30) & (abs(1.45-targetXl-LANKY) < 0.04):
+						if (Rz < -30) & (Lz < -30) & (abs(1.5-targetXl-LANKY) >= 0.04):
+							Lspeed = int(300*math.copysign(1,1.5-targetXl-LANKY))
+						elif (Rz < -30) & (Lz < -30) & (abs(1.5-targetXl-LANKY) < 0.04):
 							Lspeed = 0
 							phaxxe = 1
 						else:
@@ -269,11 +268,11 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 				#move to the initial pose
 				try:
 					if (randy[stepind] == 1):#right leg next test
-						if (Rz < -30) & (Lz < -30) & (abs(1.45-RANKY) >= 0.04):#right foot is not at 1.45 m from origin
-							Rspeed = int(300*math.copysign(1,1.45-RANKY))
+						if (Rz < -30) & (Lz < -30) & (abs(1.5-RANKY) >= 0.04):#right foot is not at 1.45 m from origin
+							Rspeed = int(300*math.copysign(1,1.5-RANKY))
 						else:
 							Rspeed = 0
-						if (Rspeed == 0) & (Lspeed == 0) & (abs(1.45-RANKY) < 0.04):#everything is ready for the left leg to move next
+						if (Rspeed == 0) & (Lspeed == 0) & (abs(1.5-RANKY) < 0.04):#everything is ready for the left leg to move next
 							phaxxe = 2#proceed to move left leg
 #							boxR.color( viz.BLUE)
 #							boxL.color( viz.BLUE)
@@ -283,11 +282,11 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 							HistBallR.visible(0)
 
 					elif (randy[stepind] == 2):#left leg next test
-						if (Rz < -30) & (Lz < -30) & (abs((1.45-targetXr)-RANKY) >= 0.04):#right foot is not at start position (1.45-target)
-							Rspeed = int(300*math.copysign(1,(1.45-targetXr)-RANKY))
+						if (Rz < -30) & (Lz < -30) & (abs((1.5-targetXr)-RANKY) >= 0.04):#right foot is not at start position (1.45-target)
+							Rspeed = int(300*math.copysign(1,(1.5-targetXr)-RANKY))
 						else:
 							Rspeed = 0
-						if (Rspeed == 0) & (Lspeed == 0) & (abs((1.45-targetXr)-RANKY) < 0.04):
+						if (Rspeed == 0) & (Lspeed == 0) & (abs((1.5-targetXr)-RANKY) < 0.04):
 							phaxxe = 2#proceed to move left leg
 #							boxR.color( viz.BLUE)
 #							boxL.color( viz.BLUE)
@@ -307,19 +306,19 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 				messagewin.visible(1)
 				try:
 					if (randy[stepind] == 1):#right leg next test
-						if (Rz < -30) & (Lz < -30) & (abs((1.45-targetXl)-LANKY) >= 0.04):#left foot is not at start position (1.45-target)
-							Lspeed = int(300*math.copysign(1,(1.45-targetXl)-LANKY))
+						if (Rz < -30) & (Lz < -30) & (abs((1.5-targetXl)-LANKY) >= 0.04):#left foot is not at start position (1.45-target)
+							Lspeed = int(300*math.copysign(1,(1.5-targetXl)-LANKY))
 						else:
 							Lspeed = 0
-						if (Rspeed == 0) & (Lspeed == 0) & (abs((1.45-targetXl)-LANKY) <= 0.04):#everything is ready for the next step so display next target
+						if (Rspeed == 0) & (Lspeed == 0) & (abs((1.5-targetXl)-LANKY) <= 0.04):#everything is ready for the next step so display next target
 							phaxxe = 3 #proceed to prep pose
 
 					elif (randy[stepind] == 2):#left leg next test
-						if (Rz < -30) & (Lz < -30) & (abs(1.45-LANKY) >= 0.04):#left foot is not at 1.45 m from origin
-							Lspeed = int(300*math.copysign(1,1.45-LANKY))
+						if (Rz < -30) & (Lz < -30) & (abs(1.5-LANKY) >= 0.04):#left foot is not at 1.45 m from origin
+							Lspeed = int(300*math.copysign(1,1.5-LANKY))
 						else:
 							Lspeed = 0
-						if (Rspeed == 0) & (Lspeed == 0) & (abs(1.45-LANKY) <= 0.04):#everything is ready for the next step so display next target
+						if (Rspeed == 0) & (Lspeed == 0) & (abs(1.5-LANKY) <= 0.04):#everything is ready for the next step so display next target
 							phaxxe = 3
 				except:
 					if (stepind >= STEPNUM):
@@ -386,9 +385,11 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 						RCOUNT = RCOUNT+1
 #						boxR.color( viz.WHITE )
 						rgorb = 1
+						print('rgorb',rgorb)
 					else:
 #						boxR.color( viz.BLUE )
 						rgorb = 0
+						print('rgorb',rgorb)
 					rightcounter.message(str(Rattempts))
 					phaxxe = 0
 					
@@ -403,9 +404,11 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 						LCOUNT = LCOUNT+1
 #						boxL.color( viz.WHITE )
 						lgorb = 1
+						print('lgorb',lgorb)
 					else:
 #						boxL.color( viz.BLUE )
 						lgorb = 0
+						print('lgorb',lgorb)
 					leftcounter.message(str(Lattempts))
 					phaxxe = 0
 					
@@ -437,7 +440,9 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3):
 #			timeold = time.time()
 	
 #	q3.join()
-
+	#print stats
+	print('R',RCOUNT,'/',STEPNUM)
+	print('L',LCOUNT,'/',STEPNUM)
 	print("All data has been processed")
 	
 def runclient(root,q):
