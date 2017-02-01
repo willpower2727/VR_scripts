@@ -1,4 +1,6 @@
-﻿""" Psychometric Curve Generation Function for a two choice task, Version 2, uses DK2 (?)
+﻿""" Psychometric Curve Generation Function for a two choice task, Version 4, uses DK2 (?)
+
+NO RELIANT ON RANDOM DRIFT ON THE TREADMILL
 
 STEP LENGTH, NOT ALPHAS AND X
 
@@ -12,7 +14,7 @@ Experimental piloting only!!!
 
 
 #Use with V2P DK2 R2
-cjs 12/13/2016
+cjs 1/31/2016
 """
 import viz
 import vizshape
@@ -49,7 +51,7 @@ viz.setMultiSample(8)
 viz.go(
 #viz.FULLSCREEN #run world in full screen
 )
-
+#####mono view of oculus on main monitor -- this is how I display one eye view of the display on the computer
 monoWindow = viz.addWindow(size=(1,1), pos=(0,1), scene=viz.addScene())
 monoQuad = viz.addTexQuad(parent=viz.ORTHO, scene=monoWindow)
 monoQuad.setBoxTransform(viz.BOX_ENABLED)
@@ -59,11 +61,14 @@ texture = vizfx.postprocess.getEffectManager().getColorTexture()
 def UpdateTexture():
     monoQuad.texture(texture)
 vizact.onupdate(0, UpdateTexture)
+#####
 
+##### This is how I display the screen on the occulus
 global hmd
 view = viz.addView
 hmd = oculus.Rift()
 hmd.getSensor()
+#####
 
 #set targets based on TM base behavior
 global targetAl   #alpha values
@@ -76,8 +81,13 @@ targetXXl = 0.2
 global targetXXr
 targetXXr = 0.2
 
+SL_L=.4952164
+SL_R=.5062866
+mean_SL=(SL_L+SL_R)/2
+
 global AVGtargetSL   #Step Length values
-AVGtargetSL =0.4
+#AVGtargetSL =0.4
+AVGtargetSL =mean_SL*.8
 
 global targetAmean
 targetAmean = (targetAr+targetAl)/2
@@ -95,14 +105,17 @@ global messagewin
 #messagewin = vizinfo.InfoPanel('',align=viz.ALIGN_CENTER_TOP,fontSize=60,icon=False,key=None)
 #messagewin = viz.addText(str(0),pos=[0.05,targetXmean+0.2,0],scale=[0.05,0.05,0.05])
 messagewin = viz.addText(str(0),pos=[-0.05,targetXmean-0.2,0],scale=[0.05,0.05,0.05])
+messagewin.visible(0)
 
 global messagephase
 #messagephase = viz.addText(str(0),pos=[0.05,targetXmean-0.32,0],scale=[0.05,0.05,0.05])
-messagephase = viz.addText(str(0),pos=[-.11,0.3,0],scale=[0.05,0.05,0.05])
+#messagephase = viz.addText(str(0),pos=[-.11,0.3,0],scale=[0.05,0.05,0.05])
+messagephase = viz.addText(str(0),pos=[-.11,.35,0],scale=[0.05,0.05,0.05])
+messagephase.visible(0)
 
 global prompt4TwoChoice
 #prompt4TwoChoice = viz.addText('Which Leg had a longer X?',pos=[-0.2,0.4,0],scale=[0.05,0.05,0.05])
-prompt4TwoChoice = viz.addText('Which Leg had a longer X?',pos=[-0.4,0.4,0],scale=[0.05,0.05,0.05])
+prompt4TwoChoice = viz.addText('Which step was Longer?',pos=[-.25,0.4,0],scale=[0.05,0.05,0.05])
 prompt4TwoChoice.visible(0)
 
 #declare the total number of steps to attempt (this is the accumulation of steps total, i.e. 75 R and 75 L means 150 total attempts)
@@ -125,17 +138,17 @@ print(randy)
 global cursorR
 #cursorR = viz.add('box3.obj', color=viz.RED, scale=[0.1,0.25,0.001], cache=viz.CACHE_NONE)
 cursorR = viz.add('box3.obj', scale=[0.2,0.1,0.001], cache=viz.CACHE_NONE)
-#cursorR.setPosition([0.2,-1*faketarget,0])
 cursorR.color(0.5,0.5,0.5)
-cursorR.setPosition([0.2,0,0])
+#cursorR.setPosition([0.2,0,0])
+cursorR.setPosition([0.1,0,.01])
 cursorR.disable(viz.LIGHTING)#we want unrealistic lighting to avoid perspective
 
 global cursorL
 #cursorL = viz.add('box3.obj', color=viz.GREEN, scale=[0.1,0.25,0.001], cache=viz.CACHE_NONE)
 cursorL = viz.add('box3.obj', scale=[0.2,0.01,0.001], cache=viz.CACHE_NONE)
 cursorL.color(0.5,0.5,0.5)
-#cursorL.setPosition([-0.2,-1*faketarget,0])
-cursorL.setPosition([-0.2,0,0])
+#cursorL.setPosition([-0.2,0,0])
+cursorL.setPosition([-0.1,0,.01])
 cursorL.disable(viz.LIGHTING)
 
 global PSYCHO
@@ -195,8 +208,9 @@ global repeatcount
 repeatcount = 0
 
 global Rspeed
-global Lspeed
 Rspeed = 0
+
+global Lspeed
 Lspeed = 0
 
 global RHS
@@ -208,7 +222,7 @@ TargetXXX=0
 ###################CJS 12/17/2016 ###########################
 ''' Setup order of distances to probe in sets'''
 #ranTar=[0, .02, -.02, .06, -.06, .10, -.10] #CJS 12/17/2016
-ranTar=[0, .02, -.02, .04, -.04, .06, -.06, .08, -.08] #CJS 1/16/2016
+ranTar=[0,.01, -.01, .02, -.02,.03, -.03, .04, -.04,  .08, -.08] #CJS 1/16/2016
 sets=6
 
 global maxstep
@@ -228,6 +242,11 @@ for x in range(1,sets+1, 1):
 	frodo = frodo+[ranTar[6]]
 	frodo = frodo+[ranTar[7]]
 	frodo = frodo+[ranTar[8]]
+	frodo = frodo+[ranTar[9]]
+	frodo = frodo+[ranTar[10]]
+#	frodo = frodo+[ranTar[11]]
+#	frodo = frodo+[ranTar[12]]
+
 
 global Samwise1
 Samwise1= list()
@@ -236,6 +255,10 @@ global Samwise2
 Samwise2= list()
 
 for x in range(1,sets+1, 1):
+	Samwise1=Samwise1+[random.randrange(250, 350, 10)]
+	Samwise1=Samwise1+[random.randrange(250, 350, 10)]
+	Samwise1=Samwise1+[random.randrange(250, 350, 10)]
+	Samwise1=Samwise1+[random.randrange(250, 350, 10)]
 	Samwise1=Samwise1+[random.randrange(250, 350, 10)]
 	Samwise1=Samwise1+[random.randrange(250, 350, 10)]
 	Samwise1=Samwise1+[random.randrange(250, 350, 10)]
@@ -257,37 +280,21 @@ for x in range(1,sets+1, 1):
 	Samwise2=Samwise2+[random.randrange(250, 350, 10)]
 	Samwise2=Samwise2+[random.randrange(250, 350, 10)]
 	Samwise2=Samwise2+[random.randrange(250, 350, 10)]
+	Samwise2=Samwise2+[random.randrange(250, 350, 10)]
+	Samwise2=Samwise2+[random.randrange(250, 350, 10)]
+	Samwise2=Samwise2+[random.randrange(250, 350, 10)]
+	Samwise2=Samwise2+[random.randrange(250, 350, 10)]
 
 ############################################################
 
 global phaxxe
 phaxxe = 0 #don't start at match ankles because there is no previous test to look at, indexing error in stepind
 
-#experimental, add lines where alpha and X should be
-
-#alphal = vizshape.addBox(size=[1,0.002,0.001])
-#alphal.setPosition(0,targetUr,0)
-#Xl = vizshape.addBox(size=[1,0.002,0.001])
-#Xl.setPosition(0,targetXr,0)
-
-#create latitudinal grid, "10" is the target step length, the grid expands above and belo
-#lines = {}#create empty dictionary
-#for x in range(1,12,1):
-#	lines["Tp{0}".format(x)]=vizshape.addBox(size=[1,0.002,0.001])
-#	lines["Tp{0}".format(x)].setPosition(0,targetmean+0.05*targetmean+(x-1)*0.1*targetmean,0)#each gap represents 20 percent of target?
-#	lines["Tn{0}".format(x)]=vizshape.addBox(size=[1,0.002,0.001])
-#	lines["Tn{0}".format(x)].setPosition(0,targetmean+0.05*targetmean-(x-1)*0.1*targetmean,0)
-##	print((x-1)*0.02)
-#global tnums
-#tnums = {}
-#for x in range(0,21,1):
-#	if (x<10):
-#		tnums["Num{0}".format(x)]=viz.addText(str(x),pos=[0,targetmean-0.95*targetmean-0.1*targetmean+x*0.1*targetmean+0.005,0],scale=[0.015,0.015,0.015])
-#	else:
-#		tnums["Num{0}".format(x)]=viz.addText(str(x),pos=[-0.005,targetmean-0.95*targetmean-0.1*targetmean+x*0.1*targetmean+0.005,0],scale=[0.015,0.015,0.015])
-#	
-viz.MainView.setPosition(0,targetXmean+0.05, -0.57)
-viz.MainView.setEuler(0,0,0)
+##### If I do not want to do head tracking....
+#viz.MainView.setPosition(0,targetXmean+0.05, -0.57) # This controls the zoom
+viz.MainView.setPosition(0,targetXmean+0.05+.1, -0.8) # This controls the zoom
+viz.MainView.setEuler(0,0,0) # This controls the rotation of the dispaly, 0, 0, 0 is right in front of the person
+#####
 
 
 #######################CJS 12/13/2016 #############################
@@ -355,7 +362,7 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3,speedread,q4):
 		
 		if (q4.empty()==False) :
 			SpdPak=q4.get()#1 is the right belt speed, 2 is the left belt speed; the treadmill comunicates in mm/s!
-			print('Length q4: ', q4.qsize() ,' RBS: ',SpdPak[1], 'LBS: ',SpdPak[2])
+			#print('Length q4: ', q4.qsize() ,' RBS: ',SpdPak[1], 'LBS: ',SpdPak[2])
 		
 		root = q.get()#look for the next frame data in the thread queue
 		if root is None:
@@ -369,21 +376,17 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3,speedread,q4):
 
 			RANKY = float(data["RANK"][1])/1000
 			LANKY = float(data["LANK"][1])/1000
-#			RGT = float(data["RGT"][1])/1000
-#			LGT = float(data["LGT"][1])/1000
-			Rgamma = LANKY-RANKY
-			Lgamma = RANKY-LANKY
-#			Ralpha = (LGT+RGT)/2-RANKY
-#			Lalpha = (LGT+RGT)/2-LANKY
-#			Rx = RANKY-(LGT+RGT)/2
-#			Lx = LANKY-(LGT+RGT)/2
+			RGT = float(data["RGT"][1])/1000
+			LGT = float(data["LGT"][1])/1000
+			Ralpha = (LGT+RGT)/2-RANKY
+			Lalpha = (LGT+RGT)/2-LANKY
+			Rx = RANKY-(LGT+RGT)/2
+			Lx = LANKY-(LGT+RGT)/2
 			
 			################CJS 12/13/2016 #################
 			''' This shows force feedback, bars will turn green when within 10% of evenly distrutued'''
 			cursorR.visible(1)
 			cursorL.visible(1)
-#			cursorR.setScale(0.2,(-Rz/1000),0.001)
-#			cursorL.setScale(0.2,(-Lz/1000),0.001)
 			cursorR.setScale(0.15,(-Rz/1000),0.001)
 			cursorL.setScale(0.15,(-Lz/1000),0.001)
 			if (abs(Rz -Lz)<(Rz*-.1)) & (abs(Rz -Lz)<(Lz*-.1)):
@@ -411,34 +414,27 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3,speedread,q4):
 					phaxxe==5
 					if (time.time()-reftime>=5):
 						step=1
-				elif (step==1): # reference step, for now assuming the right leg is the reference X
-				#if (step==1): # reference step, for now assuming the right leg is the reference X
-					speeder=Samwise1[stepind]
-					#print("Reference, Right=0")					
-					messagephase.message('Reference')					
+				elif (step==1): # reference step, for now assuming the right leg is the reference X	
+					messagephase.visible(1)
+					speeder=Samwise1[stepind]	
 					prompt4TwoChoice.visible(0)
 					desiredSL=Rgamma
 					targetSL=AVGtargetSL 
 					RIGHT=1;
 					if phaxxe==5:
+						messagephase.message('Reference')	
 						plateau=1;
 						if (abs(Rz -Lz)<(Rz*-.1)) & (abs(Rz -Lz)<(Lz*-.1)):
-							print("Step 1: Elapsed time: ", time.time()-reftime)
 							if (time.time()-reftime>=2.5):
 								step=step+1
 								desiredSL=Lgamma
-#								if (stepind==maxstep):
-#									#targetSL=AVGtargetSL-frodo[stepind-1]
-#									phaxxe=4
-#								else:
-#									phaxxe=0
 								phaxxe=0
 								RIGHT=0;
 								plateau=0
+								messagephase.message('')
 				elif (step==2): #test step, for now assuming the leg leg is the target X
+					messagephase.visible(1)
 					speeder=Samwise2[stepind]
-					#print("Test, Right=1")					
-					messagephase.message('Test')
 					desiredSL=Lgamma 
 					if (stepind==maxstep):
 						targetSL=AVGtargetSL-frodo[stepind-1]
@@ -446,20 +442,15 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3,speedread,q4):
 						targetSL=AVGtargetSL-frodo[stepind]
 					RIGHT=0;
 					if (phaxxe==5):#PSYCHO
+						messagephase.message('    Test')
 						plateau=1;
 						if (abs(Rz -Lz)<(Rz*-.1)) & (abs(Rz -Lz)<(Lz*-.1)):
-							#reftime = time.time()
-							#prompt4TwoChoice = viz.addText('Which Leg had a longer X?',pos=[0,0.4,0],scale=[0.05,0.05,0.05])
 							prompt4TwoChoice.visible(1)
-							print("Step 2: Elapsed time: ", time.time()-reftime)
 							if (PSYCHO!=0) or (time.time()-reftime>=5):
-								
 								prompt4TwoChoice.visible(0)
-								#time.sleep(10)	# Wait for 5 seconds
 								step=step+1
-								print('@@@@@@@@@@@ Stepind :', stepind, ' MAX STEP: ', maxstep)
+								#print('@@@@@@@@@@@ Stepind :', stepind, ' MAX STEP: ', maxstep)
 								if (stepind==maxstep-1):#was -1
-									#targetSL=AVGtargetSL-frodo[stepind-1]
 									phaxxe=4
 								else:
 									phaxxe=0
@@ -469,6 +460,7 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3,speedread,q4):
 								targetSL=AVGtargetSL 
 								RIGHT=1;
 								plateau=0;
+								messagephase.message('')
 				else:
 					print('Warning phase value un-defined')
 			else:
@@ -478,21 +470,41 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3,speedread,q4):
 					print('Warning how on earth did you end up here?')
 					desiredSL=AVGtargetSL 
 					targetSL=AVGtargetSL-frodo[stepind]
-			
-						#adjust alpha on right leg
-			print ("****************** Trial: ", stepind, " step: ", step, " phase: ", phaxxe, " SL of interst: ",  desiredSL,  " TargetSL: ", targetSL, '   ', PSYCHO, " ******************")
-			if (phaxxe == 0) and (step!=0) :
-				messagewin.message(str(phaxxe))
+					#adjust alpha on right leg
+			print ("****************** Trial: ", stepind, " step: ", step, " phase: ", phaxxe, " SL of interst: ",  desiredSL,  " TargetSL: ", targetSL, " PSYCHO: ", PSYCHO, " RBelt Speed:  ", Rspeed, " LBelt Speed:  ", Lspeed, "   ******************")
+			if (phaxxe == 0)and (step!=0):
+				#messagewin.message(str(phaxxe))
+				print ("RANKY: ", (RANKY), " LANKY: ", (LANKY))
+				if (Rz < -30) & (Lz < -30) & ((1.5<RANKY)):
+					print ("1.5 < ", (RANKY))
+					Lspeed = int(100*math.copysign(1,-1*((RANKY)-(1.5))))
+					Rspeed = int(100*math.copysign(1,-1*((RANKY)-(1.5))))
+				elif (Rz < -30) & (Lz < -30)& (1.5<LANKY): #this is to make sure that people more or less stay in the middle of the treadmill
+					print ("1.5 < ", (LANKY))
+					Lspeed = int(100*math.copysign(1,-1*((LANKY)-(1.5))))
+					Rspeed = int(100*math.copysign(1,-1*((LANKY)-(1.5))))
+				elif (Rz < -30) & (Lz < -30) & ((RANKY<0.5)): #this is to make sure that people more or less stay in the middle of the treadmill
+					print ((RANKY), "<0.5" )
+					Lspeed = int(100*math.copysign(1,1*((.5)-(RANKY))))
+					Rspeed = int(100*math.copysign(1,1*((.5)-(RANKY))))
+				elif (Rz < -30) & (Lz < -30) & ((LANKY<0.5)): #this is to make sure that people more or less stay in the middle of the treadmill
+					print ((LANKY), "<0.5" )
+					Lspeed = int(100*math.copysign(1,1*((.5)-(LANKY))))
+					Rspeed =  int(100*math.copysign(1,1*((.5)-(LANKY))))
+				elif (Rz < -30) & (Lz < -30) & ((1.5>RANKY)) & (1.5>LANKY) & ((RANKY>0.5)) & ((LANKY>0.5)): #this is to make sure that people more or less stay in the middle of the treadmill
+					Rspeed = 0
+					Lspeed = 0
+					phaxxe = 1
+				else:
+					Rspeed = 0
+					Lspeed = 0
+			elif (phaxxe == 1) and (step!=0) :
+				#messagewin.message(str(phaxxe))
 				if (Rz < -30) & (Lz < -30) & (abs((targetSL)-(desiredSL)) >= 0.14)  : #Undershot the target outside the tolerance of 0.04
-					#print ("A. AlphaDiff: ", (targetALPHA-desiredALPHA), " XDiff: ", (targetXXX-desiredX), " RightFirst: ", RIGHT)
 					if RIGHT==0:
-#						Lspeed = int(300*math.copysign(1,-1*((targetSL)-(desiredSL))))
-#						Rspeed = int(300*math.copysign(1,((targetSL)-(desiredSL))))
 						Lspeed = int(speeder*math.copysign(1,-1*((targetSL)-(desiredSL))))
 						Rspeed = int(speeder*math.copysign(1,((targetSL)-(desiredSL))))
 					elif RIGHT==1:
-#						Rspeed = int(300*math.copysign(1,-1*((targetSL)-(desiredSL))))
-#						Lspeed = int(300*math.copysign(1,((targetSL)-(desiredSL))))
 						Rspeed = int(speeder*math.copysign(1,-1*((targetSL)-(desiredSL))))
 						Lspeed = int(speeder*math.copysign(1,((targetSL)-(desiredSL))))
 				elif (Rz < -30) & (Lz < -30) &(abs((targetSL)-(desiredSL)) < 0.14): #Within the target tolerance of 0.04
@@ -502,29 +514,7 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3,speedread,q4):
 				else:
 					Rspeed = 0
 					Lspeed = 0
-
-#			elif (phaxxe == 1):
-#				messagewin.message(str(phaxxe))
-#				if (Rz < -30) & (Lz < -30) & (abs(targetSL-desiredSL) >= 0.01)  : #Undershot the target outside the tolerance of 0.01
-#					if RIGHT==0:
-#						Lspeed = int(50*math.copysign(1,-1*(targetSL-desiredSL)))
-#						Rspeed = int(50*math.copysign(1,(targetSL-desiredSL)))
-#					elif RIGHT==1:
-#						Rspeed = int(50*math.copysign(1,-1*(targetSL-desiredSL)))
-#						Lspeed = int(50*math.copysign(1,(targetSL-desiredSL)))
-#				elif (Rz < -30) & (Lz < -30) &(abs(targetSL-desiredSL) < 0.01): #Within the target tolerance of 0.01
-#					Rspeed = 0
-#					Lspeed = 0
-#					phaxxe = 2
-#				else:
-#					Rspeed = 0
-#					Lspeed = 0
 			elif (phaxxe == 2) and (step!=0) :  #We wait to get a readinf from the readmill indicating that the belts have come to a stop
-				#time.sleep(2)
-				messagewin.message(str(phaxxe))
-#				if (q4.empty()==False) : #if there is something in q4, i.e., a recent packet from the treadmill :)
-#					SpdPak=q4.get()#1 is the right belt speed, 2 is the left belt speed; the treadmill comunicates in mm/s!
-#					print('Length q4: ', q4.qsize() ,' RBS: ',SpdPak[1], 'LBS: ',SpdPak[2])
 				if abs(SpdPak[1])<5 and  abs(SpdPak[2])<5:
 					Rspeed = 0
 					Lspeed = 0
@@ -534,7 +524,7 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3,speedread,q4):
 					Lspeed = 0
 			
 			elif (phaxxe == 3) and (step!=0) : #Only move one belt so that we can be more accuate
-				messagewin.message(str(phaxxe))
+				#messagewin.message(str(phaxxe))
 				if (Rz < -30) & (Lz < -30) & (abs(targetSL-desiredSL) >= 0.01)  : #Undershot the target outside the tolerance of 0.04
 					if RIGHT==0:
 						Lspeed = int(50*math.copysign(1,-1*(targetSL-desiredSL)))
@@ -549,7 +539,7 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3,speedread,q4):
 						phaxxe = 4
 					else:
 						phaxxe = 5
-					plateau=1;
+						plateau=1;
 				else:
 					Rspeed = 0
 					Lspeed = 0	
@@ -577,18 +567,23 @@ def UpdateViz(root,q,speedlist,qq,savestring,q3,speedread,q4):
 			histzR = Rz
 			histzL = Lz
 			#save data
-			#if ((stepind)!=(maxstep)):
-			#if ((stepind)<(maxstep)):
-#				print('$$$$$$$$  FRODO: ', frodo, ' INDEX : ', stepind, ' MAX STEP: ', maxstep, ' THIS SHOULD WORK? :', frodo[stepind])
-#				savestring = [FN,Rz,Lz,RHS,LHS,RANKY-LANKY,LANKY-RANKY,RANKY,LANKY,PSYCHO, frodo[stepind], time.time(), stepind, step, phaxxe, desiredSL, targetSL, plateau, AVGtargetSL, reftime, speeder]#organize the data to be written to file			
-			
 			if ((stepind)==(maxstep)):
-				savestring = [FN,Rz,Lz,RHS,LHS,RANKY-LANKY,LANKY-RANKY,RANKY,LANKY,PSYCHO, frodo[stepind-1], time.time(), stepind, step, phaxxe, desiredSL, targetSL, plateau, AVGtargetSL, reftime, speeder]#organize the data to be written to file	
+				savestring = [FN,Rz,Lz,RHS,LHS,RANKY-LANKY,LANKY-RANKY,RANKY,LANKY,RGT, LGT, Ralpha, Lalpha, Rx, Lx, PSYCHO, frodo[stepind-1], time.time(), stepind, step, phaxxe, desiredSL, targetSL, plateau, AVGtargetSL, reftime, speeder, Rspeed, Lspeed]#organize the data to be written to file	
 			else:
-				savestring = [FN,Rz,Lz,RHS,LHS,RANKY-LANKY,LANKY-RANKY,RANKY,LANKY,PSYCHO, frodo[stepind], time.time(), stepind, step, phaxxe, desiredSL, targetSL, plateau, AVGtargetSL, reftime, speeder]#organize the data to be written to file	
+				savestring = [FN,Rz,Lz,RHS,LHS,RANKY-LANKY,LANKY-RANKY,RANKY,LANKY,RGT, LGT, Ralpha, Lalpha, Rx, Lx, PSYCHO, frodo[stepind], time.time(), stepind, step, phaxxe, desiredSL, targetSL, plateau, AVGtargetSL, reftime, speeder, Rspeed, Lspeed]#organize the data to be written to file	
 
+
+			RANKY = float(data["RANK"][1])/1000
+			LANKY = float(data["LANK"][1])/1000
+			RGT = float(data["RGT"][1])/1000
+			LGT = float(data["LGT"][1])/1000
+			Rgamma = LANKY-RANKY
+			Lgamma = RANKY-LANKY
+			Ralpha = (LGT+RGT)/2-RANKY
+			Lalpha = (LGT+RGT)/2-LANKY
+			Rx = RANKY-(LGT+RGT)/2
+			Lx = LANKY-(LGT+RGT)/2
 			
-			print('$$$$$$$$ Stepind :', stepind, ' MAX STEP: ', maxstep)
 			q3.put(savestring)
 
 	cpps.kill()
@@ -690,7 +685,7 @@ def sendtreadmillcommand(speedlist,qq,speedread,q4):
 			s2.setblocking(True)
 			inpack = s2.recv(32) #bytes
 			speedread = parsepacket(inpack)
-			print('speedread: ',speedread)
+			#print('speedread: ',speedread)
 			q4.put(speedread)
 			
 		else: #if there is nothing new to send
@@ -705,7 +700,7 @@ def sendtreadmillcommand(speedlist,qq,speedread,q4):
 			s2.setblocking(True)
 			inpack = s2.recv(32) #bytes
 			speedread = parsepacket(inpack)
-			print('speedread: ',speedread)
+			#print('speedread: ',speedread)
 			q4.put(speedread)
 			
 			
@@ -720,12 +715,12 @@ def savedata(savestring,q3):
 	#initialize the file
 	mst = time.time()
 	mst2 = int(round(mst))
-	mststring = str(mst2)+'PSYCHO_X_TwoChoice_V3.txt' # SAVE THE DATA FILES... AS A NAME THAT MAKES SENCE
+	mststring = str(mst2)+'PSYCHO_X_TwoChoice_V4.txt' # SAVE THE DATA FILES... AS A NAME THAT MAKES SENCE
 	print("Data file created named: ")
 	print(mststring)
 	file = open(mststring,'w+')
 	csvw = csv.writer(file)
-	csvw.writerow(['FrameNumber','Rfz','Lfz','RHS','LHS','rgamma','lgamma','RANK','LANK', 'PSYCHO', 'frodo', 'time', 'stepind', 'step', 'phaxxe', 'desiredSL', 'targetSL','plateau', 'AVGtargetSL', 'reftime', 'Speeder'])
+	csvw.writerow(['FrameNumber','Rfz','Lfz','RHS','LHS','rgamma','lgamma','RANK','LANK','RGT', 'LGT', 'Ralpha', 'Lalpha', 'Rx',  'Lx', 'PSYCHO', 'frodo', 'time', 'stepind', 'step', 'phaxxe', 'desiredSL', 'targetSL','plateau', 'AVGtargetSL', 'reftime', 'Speeder',"Rspeed", "Lspeed"])
 	file.close()
 	
 	file = open(mststring,'a')#reopen for appending only
